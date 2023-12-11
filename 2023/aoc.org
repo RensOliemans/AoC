@@ -102,13 +102,12 @@ OK now we need to calculate the shortest paths of all pairs of galaxies. For cal
 
   pairs = list(combinations(galaxies, r=2))
 
-  total = for p1, p2 in pairs:
+  total = 0
+  for p1, p2 in pairs:
       total += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
   return total
 #+end_src
-
-#+RESULTS: sum_distance
 
 *** Running on main input
 
