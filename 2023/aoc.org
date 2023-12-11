@@ -22,7 +22,7 @@ We have an input of the following format:
 #...#.....
 #+end_example
 
-which represents an image from a telescope. Each (.) represents an empty space, and each (#) represents a galaxy. The goal is to find the shortest distance between /each pair/ of galaxies.
+which represents an image from a telescope. Each =.= represents an empty space, and each =#= represents a galaxy. The goal is to find the shortest distance between /each pair/ of galaxies.
 
 The catch is that since the image was taken, the space has expanded. Area with a lot of mass expands less, so all /rows and columns/ which have /no galaxies/ expand to be twice as large. After expansion (rows 4 and 8, and columns 3, 6 and 9 have no galaxies), the universe now looks like this:
 
@@ -42,18 +42,13 @@ The catch is that since the image was taken, the space has expanded. Area with a
 #....#.......
 #+end_example
 
-The goal is to calculate the manhattan distance between each pair of galaxies.
-
-For the example_input, the sum of the shortest paths between all 36 pairs of galaxies is:
-
-#+name: example_solution
-374
+The goal is to calculate the distance of the shortest path between /each pair/ of galaxies, and sum them up. According to the rules the path can move over galaxies, so we can just take the Manhattan distance, which is nice.
 
 *** Solution
-The solution consists of two steps: expanding the image, and calculating the shortest paths. Let's have as default argument the inputfile of the example.
+The solution consists of two steps: expanding the image, and calculating the shortest paths.
 
 #+name: part_one
-#+begin_src python :noweb yes :var inputfile="inputs/day11-ex.txt"
+#+begin_src python :noweb yes :tangle d11p1.py :var inputfile="inputs/day11-ex.txt"
   def get_expansion(inputfile):
       <<expansion_one>>
 
@@ -74,7 +69,7 @@ The empty rows and columns have to be duplicated. First, find out what they are.
 #+name: expansion_one
 #+begin_src python :results none
   with open(inputfile) as f:
-    puzzle = f.read().strip()
+      puzzle = f.read().strip()
   rows = puzzle.split('\n')
 
   empty_rows = [index for index, row in enumerate(rows) if not '#' in row]
@@ -94,7 +89,7 @@ The empty rows and columns have to be duplicated. First, find out what they are.
 #+end_src
 
 **** Calculating shortest path
-OK now we need to calculate the shortest paths of all pairs of galaxies. According to the rules, we are allowed to move over galaxies, so we can just take the Manhattan distance, which is nice. For that we need the coordinates of all galaxies. Then, we need to iterate over all /pairs of galaxies/ ([[https://docs.python.org/3/library/itertools.html#itertools.combinations][itertools.combinations]]) and calculate the distance. Finally, we sum that up.
+OK now we need to calculate the shortest paths of all pairs of galaxies. For calculating the Manhattan distance, we need the coordinates of all galaxies. Then, we need to iterate over all /pairs of galaxies/ ([[https://docs.python.org/3/library/itertools.html#itertools.combinations][itertools.combinations]]) and calculate the distance for each pair. Finally, we sum that up.
 #+name: sum_distance_one
 #+begin_src python
   from itertools import combinations
@@ -107,8 +102,7 @@ OK now we need to calculate the shortest paths of all pairs of galaxies. Accordi
 
   pairs = list(combinations(galaxies, r=2))
 
-  total = 0
-  for p1, p2 in pairs:
+  total = for p1, p2 in pairs:
       total += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
   return total
@@ -127,9 +121,12 @@ OK now we need to calculate the shortest paths of all pairs of galaxies. Accordi
 ** Part Two
 This problem is identical, except that now the galaxies have moved /much farther/ away from each other. Whereas before we had to duplicate the rows and cols (ie, add /one/ row for each empty row), now we have to add 1.000.000 empty rows for each empty row (and col).
 
-The naive way to do this is to simply append 1.000.000 empty rows and calculate the distance. However, we don't want to do this, since we will get an enormous universe. Instead, we save the empty rows and columns (by index, f.e. =[3, 6, 9]=), and when calculating the distance, we check how many empty rows and columns the galaxies have between them. For each one of them, we add 1.000.000 to the sum of distances
+The naive way to do this is to simply convert each empty row to 1.000.000 empty rows and calculate the distance in the expanded image. However, we don't need this and is horribly inefficient. Instead, we save the empty rows and columns (by index, f.e. =[2, 5, 8]=), and when calculating the distance, we check how many empty rows and columns the galaxies have between them. For each one of them, we add 1.000.000 to the sum of distances.
 
-#+begin_src python :noweb yes :var inputfile="inputs/day11.txt" :var expansionfactor=1000000
+This solution generalises the previous one (=expansionfactor= of =2=).
+
+#+NAME: part_two
+#+begin_src python :noweb yes :tangle d11p2.py :var inputfile="inputs/day11-ex.txt" :var expansionfactor=2
   with open(inputfile) as f:
       puzzle = f.read().strip()
 
@@ -142,12 +139,12 @@ The naive way to do this is to simply append 1.000.000 empty rows and calculate 
       <<new_sum_distance>>
 
   return sum_distance(puzzle, empty_rows, empty_cols, expansionfactor)
-
-  return empty_rows, empty_cols
 #+end_src
 
 #+RESULTS:
-: 702770569197
+: 374
+
+We can copy the finding of =empty_rows / empty_cols= from Part One:
 
 #+name: empty_rows_cols
 #+begin_src python :results none
@@ -160,10 +157,12 @@ The naive way to do this is to simply append 1.000.000 empty rows and calculate 
   return empty_rows, empty_cols
 #+end_src
 
-Now that we have the empty rows and columns, let's modify our calculation part so that we count the expanded rows and columns.
+Now that we have the empty rows and columns, let's modify our calculation part so that we count the expanded rows and columns. I am going to use [[https://docs.python.org/3/library/bisect.html][bisect]] for this since it's fast.
+
+The way I do this is to look at each pair, f.e. =((5,0), (7,1))=. For each pair determine =x_min= and =x_max=, in the example =5= and =7=. The highest index of an empty row can be found by doing =bisect_right(empty_rows, x_max)=. The lowest index of an empty row can be found by doing =bisect_left(empty_rows, x_min)=. Having these indices is great, since the /amount/ of empty rows is simply =highest_index - lowest_index=, or in the code below, =last_empty_row - first_empty_row=. Analogous to columns, and you have the amount of empty rows and columns between the pair of galaxies, which you can multiply by =expansionfactor - 1= to get the effect of converting =1= empty row/column to =expansionfactor= empty rows/columns. 
 
 #+name: new_sum_distance
-#+begin_src python
+#+begin_src python :results none
   from itertools import combinations
   import bisect
 
@@ -194,5 +193,10 @@ Now that we have the empty rows and columns, let's modify our calculation part s
   return total
 #+end_src
 
-#+RESULTS: new_sum_distance
-: 374
+*** Running on main input
+
+#+NAME: part_two_main
+#+CALL: part_two(inputfile="inputs/day11.txt", expansionfactor=1000000)
+
+#+RESULTS: part_two_main
+: 702770569197
