@@ -3,6 +3,140 @@
 #+date: 2023-12-11
 
 Ik ben op [2023-12-11 ma] gestart, en ga niet de eerdere challenges doen: ik begin gewoon met die van vandaag, oftewel Dag 11.
+* Day 10
+** Part One
+*** Problem
+Input:
+
+#+begin_example
+7-F7-
+.FJ|7
+SJLL7
+|F--J
+LJ.LJ
+#+end_example
+
+We are looking at a grid of pipes. Each element is a pipe of some sorts, or no pipe at all (=.=). The pipes are:
+- =-= :: horizontal (N to S)
+- =|= :: vertical (E to W)
+- =J= :: bend from N to W
+- =L= :: bend from N to E
+- =7= :: bend from S to W
+- =F= :: bend from S to E
+- =S= :: start location
+
+The pipes always form a continuous loop, and there might be disconnected pipes in the rest of the grid. The goal is to find out the distance from the start location =S= to the farthest point in the loop, measured by steps taken in the loop. In summary: find the length of the loop.
+
+*** Solution
+The idea is to start at =S=, traverse the path until we get to =S=, and take the length of the path, divided by two.
+
+#+name: day_10_part_one
+#+begin_src python :noweb yes :tangle tangle/d10p1.py :var inputfile="inputs/day10-ex.txt" :results output
+  with open(inputfile) as f:
+      grid = f.read().strip().split('\n')
+
+
+  def find_start_location(grid):
+      <<find_start_location>>
+
+
+  def traverse_path(grid, initial_cell):
+      """Returns the length of the path traversed by starting from cell in grid."""
+      <<traverse_path>>
+
+  S = find_start_location(grid)
+  path = traverse_path(grid, S)
+  print(len(path) // 2)
+#+end_src
+
+#+RESULTS: day_10_part_one
+: 8
+
+Finding the start location is easy:
+#+name: find_start_location
+#+begin_src python :results none
+  for y, row in enumerate(grid):
+      for x, char in enumerate(row):
+          if char == 'S':
+              return (y, x)
+#+end_src
+
+We traverse a path starting at =a= by looking at both of the adjacent cells of =a=: =b= and =c=. We choose one of them to traverse, say =b=. We now look at the two adjacent cells to =b=, which are =a= and =d=. Our /previously/ traversed cell was =a=, so we instead look at =d=, and set =previous_cell= to =b=, so that we keep traversing new cells. Whenever we end up back at =a=, we have finished our loop.
+
+#+name: traverse_path
+#+begin_src python :noweb yes :results none
+  import random
+
+  def find_adjacent_cells(grid, cell):
+      """Determines what two cells are connected to one cell."""
+      <<find_adjacent_cells>>
+
+  path = [initial_cell]
+  start_cells = find_adjacent_cells(grid, initial_cell)
+  cell_to_traverse = random.choice(start_cells)
+
+  previous_cell = initial_cell
+  while cell_to_traverse != initial_cell:
+      path.append(cell_to_traverse)
+      adjacent_cells = find_adjacent_cells(grid, cell_to_traverse)
+      temp = cell_to_traverse
+      cell_to_traverse = [cell for cell in adjacent_cells
+                          if cell != previous_cell][0]
+      previous_cell = temp
+
+  return path
+#+end_src
+
+For the code below, =find_adjacent_cells=, note that a higher =y= means that it is /lower/ in the grid.
+
+#+name: find_adjacent_cells
+#+begin_src python :noweb yes
+  y, x = cell[0], cell[1]
+  char = grid[y][x]
+  match char:
+      case "S":
+          <<find_adjacent_cells_start>>
+      case "|":
+          return (y - 1, x), (y + 1, x)
+      case "-":
+          return (y, x - 1), (y, x + 1)
+      case "F":
+          return (y + 1, x), (y, x + 1)
+      case "7":
+          return (y + 1, x), (y, x - 1)
+      case "L":
+          return (y - 1, x), (y, x + 1)
+      case "J":
+          return (y - 1, x), (y, x - 1)
+#+end_src
+
+Now we only need to find out what cells are adjacent to the start position =S=. The cell has two to four neighbours, two of which are connected to it (otherwise it is no single loop). We can reuse the previous method, =find_adjacent_cells=, for all of the neighbours of =S=. There will be two neighbours which will have =S= as its adjacent cell.
+
+#+name: find_adjacent_cells_start
+#+begin_src python
+  possible_neighbours = {
+      (y + 1, x) if y < len(grid) else (y - 1, x),
+      (y - 1, x) if y > 0 else (y + 1, x),
+      (y, x + 1) if x < len(grid[0]) else (y, x - 1),
+      (y, x - 1) if x > 0 else (y, x + 1),
+  }
+
+  neighbours = list()
+  for neighbour in possible_neighbours:
+      cells = find_adjacent_cells(grid, neighbour)
+      if cells is not None and (y, x) in cells:
+          neighbours.append(neighbour)
+
+  assert len(neighbours) == 2, f"{len(possible_neighbours)} should be equal to 2"
+  return neighbours
+#+end_src
+
+*** Run with main input
+#+CALL: day_10_part_one(inputfile="inputs/day10.txt")
+
+#+RESULTS:
+: 6613
+
 * Day 11
 ** Part One
 *** Problem
@@ -47,7 +181,7 @@ The goal is to calculate the distance of the shortest path between /each pair/ o
 *** Solution
 The solution consists of two steps: expanding the image, and calculating the shortest paths.
 
-#+name: part_one
+#+name: day_11_part_one
 #+begin_src python :noweb yes :tangle tangle/d11p1.py :var inputfile="inputs/day11-ex.txt" :results output
   def get_expansion(inputfile):
       <<expansion_one>>
@@ -60,7 +194,7 @@ The solution consists of two steps: expanding the image, and calculating the sho
   print(sum_distance(expansion))
 #+end_src
 
-#+RESULTS: part_one
+#+RESULTS: day_11_part_one
 : 374
 
 **** Expansion
@@ -111,10 +245,10 @@ OK now we need to calculate the shortest paths of all pairs of galaxies. For cal
 
 *** Running on main input
 
-#+NAME: part_one_main
-#+CALL: part_one(inputfile="inputs/day11.txt")
+#+NAME: day_11_part_one_main
+#+CALL: day_11_part_one(inputfile="inputs/day11.txt")
 
-#+RESULTS: part_one_main
+#+RESULTS: day_11_part_one_main
 : 9974721
 
 ** Part Two
@@ -124,7 +258,7 @@ The naive way to do this is to simply convert each empty row to 1.000.000 empty 
 
 This solution generalises the previous one (=expansionfactor= of =2=).
 
-#+NAME: part_two
+#+NAME: day_11_part_two
 #+begin_src python :noweb yes :tangle tangle/d11p2.py :var inputfile="inputs/day11-ex.txt" :var expansionfactor=2 :results output
   with open(inputfile) as f:
       puzzle = f.read().strip()
@@ -194,8 +328,8 @@ The way I do this is to look at each pair, f.e. =((5,0), (7,1))=. For each pair 
 
 *** Running on main input
 
-#+NAME: part_two_main
-#+CALL: part_two(inputfile="inputs/day11.txt", expansionfactor=1000000)
+#+NAME: day_11_part_two_main
+#+CALL: day_11_part_two(inputfile="inputs/day11.txt", expansionfactor=1000000)
 
-#+RESULTS: part_two_main
+#+RESULTS: day_11_part_two_main
 : 702770569197
