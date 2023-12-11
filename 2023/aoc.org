@@ -131,7 +131,6 @@ Now we only need to find out what cells are adjacent to the start position =S=. 
   return neighbours
 #+end_src
 
-*** Run with main input
 #+CALL: day_10_part_one(inputfile="inputs/day10.txt")
 
 #+RESULTS:
@@ -315,8 +314,6 @@ OK now we need to calculate the shortest paths of all pairs of galaxies. For cal
   return total
 #+end_src
 
-*** Running on main input
-
 #+NAME: day_11_part_one_main
 #+CALL: day_11_part_one(inputfile="inputs/day11.txt")
 
@@ -397,8 +394,6 @@ The way I do this is to look at each pair, f.e. =((5,0), (7,1))=. For each pair 
 
   return total
 #+end_src
-
-*** Running on main input
 
 #+NAME: day_11_part_two_main
 #+CALL: day_11_part_two(inputfile="inputs/day11.txt", expansionfactor=1000000)
