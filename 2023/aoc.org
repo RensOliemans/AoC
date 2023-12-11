@@ -1,0 +1,177 @@
+#+title: Advent of Code
+#+author: Rens Oliemans
+#+date: 2023-12-11
+
+Ik ben op [2023-12-11 ma] gestart, en ga niet de eerdere challenges doen: ik begin gewoon met die van vandaag, oftewel Dag 11.
+* Day 11
+** Part One
+*** Problem
+We have an input of the following format:
+
+#+name: example_input
+#+begin_example
+...#......
+.......#..
+#.........
+..........
+......#...
+.#........
+.........#
+..........
+.......#..
+#...#.....
+#+end_example
+
+which represents an image from a telescope. Each (.) represents an empty space, and each (#) represents a galaxy. The goal is to find the shortest distance between /each pair/ of galaxies.
+
+The catch is that since the image was taken, the space has expanded. Area with a lot of mass expands less, so all /rows and columns/ which have /no galaxies/ expand to be twice as large. After expansion (rows 4 and 8, and columns 3, 6 and 9 have no galaxies), the universe now looks like this:
+
+#+name: example_expanded
+#+begin_example
+....#........
+.........#...
+#............
+.............
+.............
+........#....
+.#...........
+............#
+.............
+.............
+.........#...
+#....#.......
+#+end_example
+
+The goal is to calculate the manhattan distance between each pair of galaxies.
+
+For the example_input, the sum of the shortest paths between all 36 pairs of galaxies is:
+
+#+name: example_solution
+374
+
+*** Solution
+The solution consists of two steps: expanding the image, and calculating the shortest paths. Let's have as default argument the inputfile of the example.
+
+#+name: part_one
+#+begin_src python :noweb yes :var inputfile="inputs/day11-ex.txt"
+  def get_expansion(inputfile):
+      <<expansion_one>>
+
+  expansion = get_expansion(inputfile)
+
+  def sum_distance(expansion):
+      <<sum_distance_one>>
+
+  return sum_distance(expansion)
+#+end_src
+
+#+RESULTS: part_one
+: 374
+
+**** Expansion
+The empty rows and columns have to be duplicated. First, find out what they are. The rows are easy, and the columns are as well after a short transpose. [[https://docs.python.org/3.8/library/functions.html#zip][zip]] returns iterables of zipped rows, where each iterable has the elements of a column. To get each column as a string, we can just do =''.join(col)=.
+
+#+name: expansion_one
+#+begin_src python :results none
+  with open(inputfile) as f:
+    puzzle = f.read().strip()
+  rows = puzzle.split('\n')
+
+  empty_rows = [index for index, row in enumerate(rows) if not '#' in row]
+  empty_row = ".".join(['' for i in range(len(rows[0]) + 1)])
+  for i in empty_rows[::-1]:
+      rows.insert(i, empty_row)
+
+  cols = [''.join(col) for col in zip(*rows)]
+  empty_cols = [index for index, col in enumerate(cols) if not '#' in col]
+  empty_col = ".".join(['' for i in range(len(cols[0]) + 1)])
+  for i in empty_cols[::-1]:
+      cols.insert(i, empty_col)
+
+
+  rows = [''.join(row) for row in zip(*cols)]
+  return '\n'.join(rows)
+#+end_src
+
+**** Calculating shortest path
+OK now we need to calculate the shortest paths of all pairs of galaxies. According to the rules, we are allowed to move over galaxies, so we can just take the Manhattan distance, which is nice. For that we need the coordinates of all galaxies. Then, we need to iterate over all /pairs of galaxies/ ([[https://docs.python.org/3/library/itertools.html#itertools.combinations][itertools.combinations]]) and calculate the distance. Finally, we sum that up.
+#+name: sum_distance_one
+#+begin_src python
+  from itertools import combinations
+
+  galaxies = list()
+  for y, row in enumerate(expansion.split('\n')):
+      for x, char in enumerate(row):
+          if char == '#':
+              galaxies.append((x, y))
+
+  pairs = list(combinations(galaxies, r=2))
+
+  total = 0
+  for p1, p2 in pairs:
+      total += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+  return total
+#+end_src
+
+#+RESULTS: sum_distance
+
+*** Running on main input
+
+#+NAME: part_one_main
+#+CALL: part_one(inputfile="inputs/day11.txt")
+
+#+RESULTS: part_one_main
+: 9974721
+
+** Part Two
+This problem is identical, except that now the galaxies have moved /much farther/ away from each other. Whereas before we had to duplicate the rows and cols (ie, add /one/ row for each empty row), now we have to add 1.000.000 empty rows for each empty row (and col).
+
+The naive way to do this is to simply append 1.000.000 empty rows and calculate the distance. However, we don't want to do this, since we will get an enormous universe. Instead, we save the empty rows and columns (by index, f.e. =[3, 6, 9]=), and when calculating the distance, we check how many empty rows and columns the galaxies have between them. For each one of them, we add 1.000.000 to the sum of distances
+
+#+name: empty_rows_cols
+#+begin_src python :var inputfile="inputs/day1-ex.txt" :results output
+  with open(inputfile) as f:
+    puzzle = f.read().strip()
+
+  rows = puzzle.split('\n')
+  empty_rows = [index for index, row in enumerate(rows) if not '#' in row]
+
+  cols = [''.join(col) for col in zip(*rows)]
+  empty_cols = [index for index, col in enumerate(cols) if not '#' in col]
+
+  print(empty_rows)
+  print(empty_cols)
+#+end_src
+
+#+RESULTS: empty_rows_cols
+: [3, 7]
+: [2, 5, 8]
+
+Now that we have the empty rows and columns, let's modify our calculation part so that we count the expanded rows and columns
+
+#+name: new_sum_distance
+#+begin_src python :var inputfile="inputs/day1-ex.txt" :var empty_rows_cols=empty_rows_cols
+  from itertools import combinations
+
+  galaxies = list()
+  for y, row in enumerate(expansion.split('\n')):
+      for x, char in enumerate(row):
+          if char == '#':
+              galaxies.append((x, y))
+
+  pairs = list(combinations(galaxies, r=2))
+
+  total = 0
+  for p1, p2 in pairs:
+      total += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+  return total
+#+end_src
+
+#+RESULTS: new_sum_distance
+
+#+RESULTS: new-sum-distance
+
+#+RESULTS: sum_distance
+: 374
