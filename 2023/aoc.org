@@ -137,6 +137,78 @@ Now we only need to find out what cells are adjacent to the start position =S=. 
 #+RESULTS:
 : 6613
 
+** Part Two
+
+*** Problem
+We need to find out how many tiles are enclosed by the loop. Look at the following input:
+#+begin_example
+...........
+.S-------7.
+.|F-----7|.
+.||OOOOO||.
+.||OOOOO||.
+.|L-7OF-J|.
+.|II|O|II|.
+.L--JOL--J.
+.....O.....
+#+end_example
+
+The "O"s represent being outside the loop, and the "I" represent being inside. Even more impressive, the following example has the same amount (4) of tiles inside the loop. With the next example, you can see that squeezing between two pipes is also allowed.
+
+#+begin_example
+..........
+.S------7.
+.|F----7|.
+.||OOOO||.
+.||OOOO||.
+.|L-7F-J|.
+.|II||II|.
+.L--JL--J.
+..........
+#+end_example
+
+*** Solution
+Leo already told me a great way to solve this, and I'm going to do that. The idea is to count the number of pipes with a horizontal exit that you've already seen (so, that are to the left of your position). If that number is odd, you are "inside" the loop. If it's even, you are outside. See the [[https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule][Even-odd rule]].
+
+We are cheating a bit, since we know from our input that =S= has a horizontal exit. the proper way to solve this is quite easy since we already know the path (check if the cell above =S= is in the path), but this is easier :)
+
+#+NAME: day_10_part_two
+#+begin_src python :noweb yes :tangle tangle/d10p2.py :var inputfile="inputs/day10-ex2.txt" :results output
+  with open(inputfile) as f:
+      grid = f.read().strip().split('\n')
+
+  def find_start_location(grid):
+      <<find_start_location>>
+
+
+  def traverse_path(grid, cell):
+      """Returns the length of the path traversed by starting from cell in grid."""
+      <<traverse_path>>
+
+
+  S = find_start_location(grid)
+  path = traverse_path(grid, S)
+
+  counter = 0
+  for i, row in enumerate(grid):
+      pipe_count = 0
+      for j, char in enumerate(row):
+          if (i, j) in path and char in ['|', 'J', 'L', 'S']:
+              pipe_count += 1
+          elif pipe_count % 2 == 1 and (i, j) not in path:
+              counter += 1
+
+  print(counter)
+#+end_src
+
+#+RESULTS: day_10_part_two
+: 10
+
+#+CALL: day_10_part_two(inputfile="inputs/day10.txt")
+
+#+RESULTS:
+: 511
+
 * Day 11
 ** Part One
 *** Problem
