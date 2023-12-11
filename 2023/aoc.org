@@ -48,7 +48,7 @@ The goal is to calculate the distance of the shortest path between /each pair/ o
 The solution consists of two steps: expanding the image, and calculating the shortest paths.
 
 #+name: part_one
-#+begin_src python :noweb yes :tangle d11p1.py :var inputfile="inputs/day11-ex.txt"
+#+begin_src python :noweb yes :tangle tangle/d11p1.py :var inputfile="inputs/day11-ex.txt"
   def get_expansion(inputfile):
       <<expansion_one>>
 
@@ -126,7 +126,7 @@ The naive way to do this is to simply convert each empty row to 1.000.000 empty 
 This solution generalises the previous one (=expansionfactor= of =2=).
 
 #+NAME: part_two
-#+begin_src python :noweb yes :tangle d11p2.py :var inputfile="inputs/day11-ex.txt" :var expansionfactor=2
+#+begin_src python :noweb yes :tangle tangle/d11p2.py :var inputfile="inputs/day11-ex.txt" :var expansionfactor=2
   with open(inputfile) as f:
       puzzle = f.read().strip()
 
