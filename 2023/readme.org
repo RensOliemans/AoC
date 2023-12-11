@@ -1,0 +1,5 @@
+#+title: README AoC 2023
+#+author: Rens Oliemans
+#+date: 2023-12-11
+
+Ik gebruik [[https://orgmode.org/][Org Mode]] om te proggen. [[file:aoc.org]] bevat mijn oplossingen, gemaakt met [[http://www.literateprogramming.com/knuthweb.pdf][Literate programming]]. Je kunt met =org-babel-tangle= de broncode tangelen naar programa's die individuele challenges oplossen.
