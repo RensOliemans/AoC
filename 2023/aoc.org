@@ -129,34 +129,47 @@ This problem is identical, except that now the galaxies have moved /much farther
 
 The naive way to do this is to simply append 1.000.000 empty rows and calculate the distance. However, we don't want to do this, since we will get an enormous universe. Instead, we save the empty rows and columns (by index, f.e. =[3, 6, 9]=), and when calculating the distance, we check how many empty rows and columns the galaxies have between them. For each one of them, we add 1.000.000 to the sum of distances
 
-#+name: empty_rows_cols
-#+begin_src python :var inputfile="inputs/day1-ex.txt" :results output
+#+begin_src python :noweb yes :var inputfile="inputs/day11.txt" :var expansionfactor=1000000
   with open(inputfile) as f:
-    puzzle = f.read().strip()
+      puzzle = f.read().strip()
 
+  def get_empty_rows_cols(puzzle):
+      <<empty_rows_cols>>
+
+  empty_rows, empty_cols = get_empty_rows_cols(puzzle)
+
+  def sum_distance(puzzle, empty_rows, empty_cols, expansionfactor):
+      <<new_sum_distance>>
+
+  return sum_distance(puzzle, empty_rows, empty_cols, expansionfactor)
+
+  return empty_rows, empty_cols
+#+end_src
+
+#+RESULTS:
+: 702770569197
+
+#+name: empty_rows_cols
+#+begin_src python :results none
   rows = puzzle.split('\n')
   empty_rows = [index for index, row in enumerate(rows) if not '#' in row]
 
   cols = [''.join(col) for col in zip(*rows)]
   empty_cols = [index for index, col in enumerate(cols) if not '#' in col]
 
-  print(empty_rows)
-  print(empty_cols)
+  return empty_rows, empty_cols
 #+end_src
 
-#+RESULTS: empty_rows_cols
-: [3, 7]
-: [2, 5, 8]
-
-Now that we have the empty rows and columns, let's modify our calculation part so that we count the expanded rows and columns
+Now that we have the empty rows and columns, let's modify our calculation part so that we count the expanded rows and columns.
 
 #+name: new_sum_distance
-#+begin_src python :var inputfile="inputs/day1-ex.txt" :var empty_rows_cols=empty_rows_cols
+#+begin_src python
   from itertools import combinations
+  import bisect
 
   galaxies = list()
-  for y, row in enumerate(expansion.split('\n')):
-      for x, char in enumerate(row):
+  for x, row in enumerate(puzzle.split('\n')):
+      for y, char in enumerate(row):
           if char == '#':
               galaxies.append((x, y))
 
@@ -164,14 +177,22 @@ Now that we have the empty rows and columns, let's modify our calculation part s
 
   total = 0
   for p1, p2 in pairs:
-      total += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+      x_min, x_max = min(p1[0], p2[0]), max(p1[0], p2[0])
+      first_empty_row = bisect.bisect_left(empty_rows, x_min)
+      last_empty_row = bisect.bisect_right(empty_rows, x_max)
+      empty_rows_between = last_empty_row - first_empty_row
+      x = x_max - x_min + empty_rows_between * (expansionfactor - 1)
+
+      y_min, y_max = min(p1[1], p2[1]), max(p1[1], p2[1])
+      first_empty_col = bisect.bisect_left(empty_cols, y_min)
+      last_empty_col = bisect.bisect_right(empty_cols, y_max)
+      empty_cols_between = last_empty_col - first_empty_col
+      y = y_max - y_min + empty_cols_between * (expansionfactor - 1)
+
+      total += x + y
 
   return total
 #+end_src
 
 #+RESULTS: new_sum_distance
-
-#+RESULTS: new-sum-distance
-
-#+RESULTS: sum_distance
 : 374
