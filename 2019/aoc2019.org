@@ -1,0 +1,255 @@
+#+title: Advent of Code 2019
+#+author: Rens Oliemans
+#+date: Friday 2022-11-11
+[[https://adventofcode.com/2019][adventofcode.nl/2019]]
+
+* Day 1
+We need to launch =modules=, based on their =mass= \(m\). The fuel
+required for a module is \( \left\lfloor \frac{m}{3} \right\rfloor + 2
+\).
+
+** Puzzle 1, =calculate-fuel=
+
+#+begin_src lisp
+  (defun calculate-fuel (mass)
+    (- (floor (/ mass 3)) 2))
+
+  (calculate-fuel 12)
+#+end_src
+
+#+RESULTS:
+: 2
+
+*** Test
+=deftest= is a macro defined below, from [[https://gigamonkeys.com/book/practical-building-a-unit-test-framework.html][Chapter 9]] of [[https://gigamonkeys.com/book/][Practical Common
+Lisp]].
+#+begin_src lisp :results output
+  (deftest test-calculate-fuel ()
+    (check
+      (= (calculate-fuel 12) 2)
+      (= (calculate-fuel 14) 2)
+      (= (calculate-fuel 1969) 654)
+      (= (calculate-fuel 100756) 33583)))
+
+  (test-calculate-fuel)
+#+end_src
+
+#+RESULTS:
+: pass ... (TEST-CALCULATE-FUEL): (= (CALCULATE-FUEL 12) 2)
+: pass ... (TEST-CALCULATE-FUEL): (= (CALCULATE-FUEL 14) 2)
+: pass ... (TEST-CALCULATE-FUEL): (= (CALCULATE-FUEL 1969) 654)
+: pass ... (TEST-CALCULATE-FUEL): (= (CALCULATE-FUEL 100756) 33583)
+
+*** Result
+#+begin_src lisp
+  (let ((file (get-aoc-input-as-list 1)))
+    (loop for line in file
+	  sum (calculate-fuel (parse-integer line))))
+#+end_src
+
+#+RESULTS:
+: 3386686
+
+** Puzzle 2, =calculate-total-fuel=
+The fuel itself has mass, and therefore also needs fuel. To calculate
+this, treat the fuel amount as input mass and repeat the process,
+until a fuel requirement is 0 or negative.
+
+#+begin_src lisp
+  (defun calculate-total-fuel (mass)
+    (do ((new-mass (calculate-fuel mass) (calculate-fuel new-mass))
+	 (total-fuel 0 (+ total-fuel new-mass)))
+	((<= new-mass 0) total-fuel)))
+
+  (calculate-total-fuel 14)
+#+end_src
+
+#+RESULTS:
+: 2
+
+*** Test
+#+begin_src lisp :results output
+  (deftest test-calculate-total-fuel ()
+    (check
+      (= (calculate-total-fuel 14) 2)
+      (= (calculate-total-fuel 1969) 966)
+      (= (calculate-total-fuel 100756) 50346)))
+
+  (test-calculate-total-fuel)
+#+end_src
+
+#+RESULTS:
+: pass ... (TEST-CALCULATE-TOTAL-FUEL): (= (CALCULATE-TOTAL-FUEL 14) 2)
+: pass ... (TEST-CALCULATE-TOTAL-FUEL): (= (CALCULATE-TOTAL-FUEL 1969) 966)
+: pass ... (TEST-CALCULATE-TOTAL-FUEL): (= (CALCULATE-TOTAL-FUEL 100756) 50346)
+
+*** Result
+#+begin_src lisp
+  (let ((file (get-aoc-input-as-list 1)))
+    (loop for line in file
+	  sum (calculate-total-fuel (parse-integer line))))
+#+end_src
+
+#+RESULTS:
+: 5077155
+
+* Day 2
+
+** Puzzle 1, =Intcode=
+We need to create an =Intcode= interpreter. An =Intcode= program is a
+list of integers separated by commas. The first integer is an
+=opcode=, indicating what to do:
+- =1=: *add* numbers and store the result. The three integers
+  /immediately after/ the opcode tell you the positions: the first two
+  indicate the /indices/ from which you should read, the third the
+  /index/ at which the output should be stored.
+- =2=: *multiply* in the same manner as =1= adds.
+- =99=: halt
+
+After halting, we need to determine what value is left at position
+=0=.
+
+=Intcode= should transform the initial state to the final state. This
+is because that's they way they provided test cases, and that's what
+is eventually needed (albeit only the value at position =0=).
+
+#+begin_src lisp
+  (defmacro calculate-value-with-next-two-numbers (numbers op-index func)
+    "Calculate the correct value by doing (,func numbers[i+1] numbers[i+2])."
+    `(,func (elt ,numbers (elt ,numbers (+ 1 ,op-index)))
+	    (elt ,numbers (elt ,numbers (+ 2 ,op-index)))))
+
+  (defmacro calculate-and-set-correct-numbers (numbers op-index func)
+    "Calculate the correct value and set numbers[numbers[i+2]] to it."
+    (with-gensyms (value result-index)
+      `(let ((,value (calculate-value-with-next-two-numbers ,numbers ,op-index ,func))
+	     (,result-index (elt ,numbers (+ 3 ,op-index))))
+	 (setf (elt ,numbers ,result-index) ,value))))
+
+  (defun intcode (numbers)
+    "Runs the Intcode program (specified above) and returns the modified state after halting."
+    (do ((op-index 0 (+ 4 op-index))
+	 (opcode (elt numbers 0)))
+	((= (elt numbers op-index) 99) numbers)
+
+      (let ((opcode (elt numbers op-index))
+	    (result-index (elt numbers (+ 3 op-index))))
+
+	(if (= opcode 1)
+	    (calculate-and-set-correct-numbers numbers op-index +))
+
+	(if (= opcode 2)
+	    (calculate-and-set-correct-numbers numbers op-index *)))))
+
+  (let ((numbers '(1 1 1 4 99 5 6 0 99)))
+    (intcode numbers))
+#+end_src
+
+#+RESULTS:
+| 30 | 1 | 1 | 4 | 2 | 5 | 6 | 0 | 99 |
+
+
+*** Test
+#+begin_src lisp :results output
+  (deftest test-intcode ()
+    (check
+      (equal (intcode '(1 9 10 3 2 3 11 0 99 30 40 50)) '(3500 9 10 70 2 3 11 0 99 30 40 50))
+      (equal (intcode '(1 0 0 0 99)) '(2 0 0 0 99))
+      (equal (intcode '(2 3 0 3 99)) '(2 3 0 6 99))
+      (equal (intcode '(2 4 4 5 99 0)) '(2 4 4 5 99 9801))
+      (equal (intcode '(1 1 1 4 99 5 6 0 99)) '(30 1 1 4 2 5 6 0 99))))
+
+  (test-intcode)
+#+end_src
+
+#+RESULTS:
+: pass ... (TEST-INTCODE): (EQUAL (INTCODE '(3500 9 10 70 2 3 11 0 99 30 40 50))
+:                                 '(3500 9 10 70 2 3 11 0 99 30 40 50))
+: pass ... (TEST-INTCODE): (EQUAL (INTCODE '(2 0 0 0 99)) '(2 0 0 0 99))
+: pass ... (TEST-INTCODE): (EQUAL (INTCODE '(2 3 0 6 99)) '(2 3 0 6 99))
+: pass ... (TEST-INTCODE): (EQUAL (INTCODE '(2 4 4 5 99 9801)) '(2 4 4 5 99 9801))
+: pass ... (TEST-INTCODE): (EQUAL (INTCODE '(30 1 1 4 2 5 6 0 99))
+:                                 '(30 1 1 4 2 5 6 0 99))
+
+*** Result
+We have to modify the program found in the puzzle input. We need to
+replace position =1= with the value =12= and replace position =2= with
+the value =2=.
+
+#+begin_src lisp :results output
+  (let ((file (get-aoc-input-as-list 2)))
+    (format t "~a~%" file))
+#+end_src
+
+#+RESULTS:
+: (1,0,0,3,1,1,2,3,1,3,4,3,1,5,0,3,2,6,1,19,1,5,19,23,1,13,23,27,1,6,27,31,2,31,13,35,1,9,35,39,2,39,13,43,1,43,10,47,1,47,13,51,2,13,51,55,1,55,9,59,1,59,5,63,1,6,63,67,1,13,67,71,2,71,10,75,1,6,75,79,1,79,10,83,1,5,83,87,2,10,87,91,1,6,91,95,1,9,95,99,1,99,9,103,2,103,10,107,1,5,107,111,1,9,111,115,2,13,115,119,1,119,10,123,1,123,10,127,2,127,10,131,1,5,131,135,1,10,135,139,1,139,2,143,1,6,143,0,99,2,14,0,0)
+
+* Tools
+
+** Printing things
+=show-result= takes as input a function with an argument (currently
+only 1 argument), and produces a =FORMAT= line with the function,
+argument, and result of =(func arg)=.
+
+#+begin_src lisp :tangle no :results none
+  (defmacro show-result (func arg)
+    `(format t "(~a ~a): ~a~%" ',func ,arg (,func ,arg)))
+#+end_src
+
+** File input
+
+*** =get-aoc-input-as-list=
+We want to get the input of the day easily, without doing things with
+=stream= or the root of the path everywhere. =get-aoc-input-as-list= is a
+macro that gives you the content of a file, where each line is an
+element in the list returned.
+
+#+begin_src lisp :results none
+  (defun get-aoc-input-as-list (day)
+    "Get the input of =day= in form of a list, each element corresponding to a line in the input.
+  Expects a file day<n>input for day n, in ~/Projects/AoC/AoC-2019."
+    (with-open-file (stream (format nil "/home/rens/Projects/AoC/AoC-2019/day~ainput" day))
+      (loop for line = (read-line stream nil)
+	    while line
+	    collect line)))
+#+end_src
+
+** Unit Test Framework
+See [[https://gigamonkeys.com/book/practical-building-a-unit-test-framework.html][Chapter 9]] of Practical Common Lisp.
+
+*** Dependencies
+#+begin_src lisp :results none
+  (defun report-result (result form)
+    "Report the results of a single test case. Called by 'check'."
+    (format t "~:[FAIL~;pass~] ... ~a: ~a~%" result *test-name* form)
+    result)
+
+  (defmacro with-gensyms ((&rest names) &body body)
+    `(let ,(loop for n in names collect `(,n (gensym)))
+       ,@body))
+
+  (defmacro combine-results (&body forms)
+    "Combine the results (as booleans) of evaluating 'forms' in order."
+    (with-gensyms (result)
+      `(let ((,result t))
+	 ,@(loop for form in forms collect `(unless ,form (setf ,result nil)))
+	 ,result)))
+
+  (defmacro check(&body forms)
+  "Run each expression in 'forms' as a test case."
+    `(combine-results
+      ,@(loop for form in forms collect `(report-result ,form ',form))))
+#+end_src
+
+*** Framework
+#+begin_src lisp :results none
+(defvar *test-name* nil)
+
+(defmacro deftest (name parameters &body body)
+  "Define a test function. Within a test function we can call
+   other test functions or use 'check' to run individual test
+   cases."
+  `(defun ,name ,parameters
+    (let ((*test-name* (append *test-name* (list ',name))))
+      ,@body)))
+#+end_src

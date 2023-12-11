@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2022-11-12 za 09:18 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advent of Code 2019</title>
+<meta name="author" content="Rens Oliemans" />
+<meta name="generator" content="Org Mode" />
+<style>
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+</style>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 100,
+                        linebreaks: { automatic: "false" },
+                        webFont: "TeX"
+                       },
+        SVG: {scale: 100,
+              linebreaks: { automatic: "false" },
+              font: "TeX"},
+        NativeMML: {scale: 100},
+        TeX: { equationNumbers: {autoNumber: "AMS"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Advent of Code 2019</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org627c44a">1. Day 1</a>
+<ul>
+<li><a href="#orge6d4a76">1.1. Puzzle 1, <code>calculate-fuel</code></a>
+<ul>
+<li><a href="#org68c5987">1.1.1. Test</a></li>
+<li><a href="#org6ff7718">1.1.2. Result</a></li>
+</ul>
+</li>
+<li><a href="#org6cca1b8">1.2. Puzzle 2, <code>calculate-total-fuel</code></a>
+<ul>
+<li><a href="#org98b51f9">1.2.1. Test</a></li>
+<li><a href="#org2600af7">1.2.2. Result</a></li>
+<li><a href="#org4e34d87">1.2.3. <span class="todo TODO">TODO</span> Remove duplication in file input and loop</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org9e7d4f3">2. Tools</a>
+<ul>
+<li><a href="#org78f062a">2.1. Printing things</a></li>
+<li><a href="#org6607304">2.2. File input</a></li>
+<li><a href="#org5eb198b">2.3. Unit Test Framework</a>
+<ul>
+<li><a href="#orgb39a49e">2.3.1. Dependencies</a></li>
+<li><a href="#org0e78a3c">2.3.2. Framework</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<p>
+<a href="https://adventofcode.com/2019">adventofcode.nl/2019</a>
+</p>
+
+<div id="outline-container-org627c44a" class="outline-2">
+<h2 id="org627c44a"><span class="section-number-2">1.</span> Day 1</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+We need to launch <code>modules</code>, based on their <code>mass</code> \(m\). The fuel
+required for a module is \( \left\lfloor \frac{m}{3} \right\rfloor + 2
+\).
+</p>
+</div>
+
+<div id="outline-container-orge6d4a76" class="outline-3">
+<h3 id="orge6d4a76"><span class="section-number-3">1.1.</span> Puzzle 1, <code>calculate-fuel</code></h3>
+<div class="outline-text-3" id="text-1-1">
+<div class="org-src-container">
+<pre class="src src-lisp">(defun calculate-fuel (mass)
+  (- (floor (/ mass 3)) 2))
+
+(calculate-fuel 12)
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org68c5987" class="outline-4">
+<h4 id="org68c5987"><span class="section-number-4">1.1.1.</span> Test</h4>
+<div class="outline-text-4" id="text-1-1-1">
+<p>
+<code>deftest</code> is a macro defined below, from <a href="https://gigamonkeys.com/book/practical-building-a-unit-test-framework.html">Chapter 9</a> of <a href="https://gigamonkeys.com/book/">Practical Common
+Lisp</a>.
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(deftest test-calculate-fuel ()
+  (check
+    (= (calculate-fuel 12) 2)
+    (= (calculate-fuel 14) 2)
+    (= (calculate-fuel 1969) 654)
+    (= (calculate-fuel 100756) 33583)))
+
+(test-calculate-fuel)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org6ff7718" class="outline-4">
+<h4 id="org6ff7718"><span class="section-number-4">1.1.2.</span> Result</h4>
+<div class="outline-text-4" id="text-1-1-2">
+<div class="org-src-container">
+<pre class="src src-lisp">(let ((file (get-aoc-input 1)))
+  (loop for line in file
+	sum (calculate-fuel (parse-integer line))))
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org6cca1b8" class="outline-3">
+<h3 id="org6cca1b8"><span class="section-number-3">1.2.</span> Puzzle 2, <code>calculate-total-fuel</code></h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+The fuel itself has mass, and therefore also needs fuel. To calculate
+this, treat the fuel amount as input mass and repeat the process,
+until a fuel requirement is 0 or negative.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(defun calculate-total-fuel (mass)
+  (do ((new-mass (calculate-fuel mass) (calculate-fuel new-mass))
+       (total-fuel 0 (+ total-fuel new-mass)))
+      ((&lt;= new-mass 0) total-fuel))))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(calculate-total-fuel 14)
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org98b51f9" class="outline-4">
+<h4 id="org98b51f9"><span class="section-number-4">1.2.1.</span> Test</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<div class="org-src-container">
+<pre class="src src-lisp">(deftest test-calculate-total-fuel ()
+  (check
+    (= (calculate-total-fuel 14) 2)
+    (= (calculate-total-fuel 1969) 966)
+    (= (calculate-total-fuel 100756) 50346)))
+
+(test-calculate-total-fuel)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2600af7" class="outline-4">
+<h4 id="org2600af7"><span class="section-number-4">1.2.2.</span> Result</h4>
+<div class="outline-text-4" id="text-1-2-2">
+<div class="org-src-container">
+<pre class="src src-lisp">(let ((file (get-aoc-input 1)))
+  (loop for line in file
+	sum (calculate-total-fuel (parse-integer line))))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org4e34d87" class="outline-4">
+<h4 id="org4e34d87"><span class="section-number-4">1.2.3.</span> <span class="todo TODO">TODO</span> Remove duplication in file input and loop</h4>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org9e7d4f3" class="outline-2">
+<h2 id="org9e7d4f3"><span class="section-number-2">2.</span> Tools</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org78f062a" class="outline-3">
+<h3 id="org78f062a"><span class="section-number-3">2.1.</span> Printing things</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+<code>show-result</code> takes as input a function with an argument (currently
+only 1 argument), and produces a <code>FORMAT</code> line with the function,
+argument, and result of <code>(func arg)</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(defmacro show-result (func arg)
+  `(format t "(~a ~a): ~a~%" ',func ,arg (,func ,arg)))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org6607304" class="outline-3">
+<h3 id="org6607304"><span class="section-number-3">2.2.</span> File input</h3>
+<div class="outline-text-3" id="text-2-2">
+<div class="org-src-container">
+<pre class="src src-lisp">(defun get-aoc-input (day)
+  (with-open-file (stream (format nil "/home/rens/Projects/AoC/AoC-2019/day~ainput" day))
+    (loop for line = (read-line stream nil)
+	  while line
+	  collect line)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org5eb198b" class="outline-3">
+<h3 id="org5eb198b"><span class="section-number-3">2.3.</span> Unit Test Framework</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+See <a href="https://gigamonkeys.com/book/practical-building-a-unit-test-framework.html">Chapter 9</a> of Practical Common Lisp.
+</p>
+</div>
+
+<div id="outline-container-orgb39a49e" class="outline-4">
+<h4 id="orgb39a49e"><span class="section-number-4">2.3.1.</span> Dependencies</h4>
+<div class="outline-text-4" id="text-2-3-1">
+<div class="org-src-container">
+<pre class="src src-lisp">(defmacro with-gensyms ((&amp;rest names) &amp;body body)
+  `(let ,(loop for n in names collect `(,n (gensym)))
+     ,@body))
+
+(defmacro combine-results (&amp;body forms)
+  (with-gensyms (result)
+    `(let ((,result t))
+       ,@(loop for form in forms collect `(unless ,form (setf ,result nil)))
+       ,result)))
+
+(defmacro check(&amp;body forms)
+  `(combine-results
+     ,@(loop for form in forms collect `(report-result ,form ',form))))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org0e78a3c" class="outline-4">
+<h4 id="org0e78a3c"><span class="section-number-4">2.3.2.</span> Framework</h4>
+<div class="outline-text-4" id="text-2-3-2">
+<div class="org-src-container">
+<pre class="src src-lisp">(defvar *test-name* nil)
+
+(defmacro deftest (name parameters &amp;body body)
+  "Define a test function. Within a test function we can call
+   other test functions or use 'check' to run individual test
+   cases."
+  `(defun ,name ,parameters
+    (let ((*test-name* (append *test-name* (list ',name))))
+      ,@body)))
+
+(defmacro check (&amp;body forms)
+  "Run each expression in 'forms' as a test case."
+  `(combine-results
+    ,@(loop for f in forms collect `(report-result ,f ',f))))
+
+(defmacro combine-results (&amp;body forms)
+  "Combine the results (as booleans) of evaluating 'forms' in order."
+  (with-gensyms (result)
+    `(let ((,result t))
+      ,@(loop for f in forms collect `(unless ,f (setf ,result nil)))
+      ,result)))
+
+(defun report-result (result form)
+  "Report the results of a single test case. Called by 'check'."
+  (format t "~:[FAIL~;pass~] ... ~a: ~a~%" result *test-name* form)
+  result)
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: Friday 2022-11-11</p>
+<p class="author">Author: Rens Oliemans</p>
+<p class="date">Created: 2022-11-12 za 09:18</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
