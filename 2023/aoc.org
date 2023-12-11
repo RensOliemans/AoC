@@ -48,7 +48,7 @@ The goal is to calculate the distance of the shortest path between /each pair/ o
 The solution consists of two steps: expanding the image, and calculating the shortest paths.
 
 #+name: part_one
-#+begin_src python :noweb yes :tangle tangle/d11p1.py :var inputfile="inputs/day11-ex.txt"
+#+begin_src python :noweb yes :tangle tangle/d11p1.py :var inputfile="inputs/day11-ex.txt" :results output
   def get_expansion(inputfile):
       <<expansion_one>>
 
@@ -57,7 +57,7 @@ The solution consists of two steps: expanding the image, and calculating the sho
   def sum_distance(expansion):
       <<sum_distance_one>>
 
-  return sum_distance(expansion)
+  print(sum_distance(expansion))
 #+end_src
 
 #+RESULTS: part_one
@@ -91,7 +91,7 @@ The empty rows and columns have to be duplicated. First, find out what they are.
 **** Calculating shortest path
 OK now we need to calculate the shortest paths of all pairs of galaxies. For calculating the Manhattan distance, we need the coordinates of all galaxies. Then, we need to iterate over all /pairs of galaxies/ ([[https://docs.python.org/3/library/itertools.html#itertools.combinations][itertools.combinations]]) and calculate the distance for each pair. Finally, we sum that up.
 #+name: sum_distance_one
-#+begin_src python
+#+begin_src python :results none
   from itertools import combinations
 
   galaxies = list()
@@ -125,7 +125,7 @@ The naive way to do this is to simply convert each empty row to 1.000.000 empty 
 This solution generalises the previous one (=expansionfactor= of =2=).
 
 #+NAME: part_two
-#+begin_src python :noweb yes :tangle tangle/d11p2.py :var inputfile="inputs/day11-ex.txt" :var expansionfactor=2
+#+begin_src python :noweb yes :tangle tangle/d11p2.py :var inputfile="inputs/day11-ex.txt" :var expansionfactor=2 :results output
   with open(inputfile) as f:
       puzzle = f.read().strip()
 
@@ -137,7 +137,7 @@ This solution generalises the previous one (=expansionfactor= of =2=).
   def sum_distance(puzzle, empty_rows, empty_cols, expansionfactor):
       <<new_sum_distance>>
 
-  return sum_distance(puzzle, empty_rows, empty_cols, expansionfactor)
+  print(sum_distance(puzzle, empty_rows, empty_cols, expansionfactor))
 #+end_src
 
 #+RESULTS:
