@@ -3,6 +3,149 @@
 #+date: 2023-12-11
 
 Ik ben op [2023-12-11 ma] gestart, en ga niet de eerdere challenges doen: ik begin gewoon met die van vandaag, oftewel Dag 11.
+
+* Day 1
+:PROPERTIES:
+:header-args: :var inputfile="inputs/day1.txt" :results output
+:END:
+
+** Part One
+Quite simple: take first and last number from each line and concatenate them. In the case of a single number, add that one twice. Sum the result of each line.
+
+#+begin_src python
+  with open(inputfile) as f:
+      lines = [[char for char in line
+               if char.isdigit()]
+               for line in f]
+
+  print(sum([int(line[0] + line[-1]) for line in lines]))
+#+end_src
+
+#+RESULTS:
+: 54630
+
+** Part Two
+#+begin_quote
+Update: I misunderstood the question. I thought that =eightwothree= should be converted to =83=, since the =t= was already 'taken' by the =eight=. However, that is not the case, and it should converted to =823=. In this case it does not matter, since the extra number isn't at the start or end of the string, but in the input that does happen occasionally. I actually created /two/ versions that did the same thing (second is markedly less efficient, but smaller code). The second one is now correct, but I am keeping the first one here for fun.
+#+end_quote
+
+A tiny bit more complex: some of the numbers that you need to sum aren't in the string as digits, but are written out. For example, =two1nine= would need to parse to =29=. The difficulty is shown in the example of =eightwothree=, which would parse to =83=, since the first =t= is part of =eight=.
+
+I opted for a regex solution ([[https://docs.python.org/3/library/re.html#re.sub][re.sub]]), since it's easy to substitute in the order the string comes. Note the non-greedy matchers in the pattern, otherwise we wouldn't match a single number. 
+
+#+name: d1p2
+#+begin_src python :noweb yes :tangle tangle/d1p2.py :var inputfile="inputs/day1-ex.txt"
+  import re
+
+  numstrings = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+  NUMBERS = {num: numstrings.index(num) + 1
+             for num in numstrings}
+
+  pattern = <<regex_pattern>>  
+
+  def parse_line(line):
+      <<convert_strings_to_numbers>>
+      line = re.sub(r'[a-z]', '', line)
+      return int(line[0] + line[-1])
+
+
+  def replace_group(matchobj):
+      <<replace_group>>
+
+
+  with open(inputfile) as f:
+      lines = [line.strip() for line in f]
+      orig_lines = lines
+
+
+  lines = [parse_line(line) for line in lines]
+  print(sum(lines))
+
+  <<other_approach>>
+#+end_src
+
+#+RESULTS: d1p2
+: 281
+: 281
+
+The regex pattern here is quite complicated, since the strings can be a bit complicated. My goal is to convert each number-word in the to the corresponding number. Then, we can remove the remaining letters, and we can finally take the first and last character.
+
+These are some examples of the strings and their desired conversion:
+- =eightwothree= :: =83=
+- =4nineeightseven2= :: =49872=
+- =zoneight234= :: =1234=
+
+We have the following difficulties:
+- It might start with some amount of letters that don't belong to a number
+- After the possible initial letters, we have at least one number /or/ a word of number,
+  followed by possible random letters. This /might/ be repeated. At the end, we might
+  again have random letters.
+
+In order to catch the first letters /without/ matching too much, we use the non-greedy modifier =?=. Otherwise, the first letters are always matched to throw away. We match the actual numbers in a capturing group.
+
+#+name: regex_pattern
+#+begin_src python
+  fr'[a-z]*?(([1-9]|{"|".join(numstrings)})[a-z]*?)[a-z]*?'
+#+end_src
+
+We convert strings to numbers with =re.sub=, which can be called with a function. In that case, that function is called with the matchobject and returns the replacement string (see [[https://docs.python.org/3/library/re.html#re.sub][re.sub()]]).
+
+#+name: convert_strings_to_numbers
+#+name: 
+#+begin_src python
+  line = re.sub(pattern, replace_group, line)
+#+end_src
+
+Remember, the capturing group can contain either the digit itself, or a word of the digit.
+#+name: replace_group
+#+begin_src python
+  word = matchobj.group(1)
+  if word.isdigit():
+      return str(word)
+  return str(NUMBERS[word])
+#+end_src
+
+#+CALL: d1p2(inputfile="inputs/day1.txt")
+
+#+RESULTS:
+: 54780
+: 54770
+
+Other approach to verify the result
+
+#+name: other_approach
+#+begin_src python
+  def generate_converted_line(line):
+      i = 0
+      while i < len(line):
+          char = line[i]
+          if char.isdigit():
+              yield char
+              i += 1
+              continue
+
+          for num in numstrings:
+              try:
+                  if line[i:i+len(num)] == num:
+                      yield str(NUMBERS[num])
+                      i += 1
+                      break
+              except IndexError:
+                  continue
+
+          i += 1
+
+  converted = [generate_converted_line(line) for line in orig_lines]
+  values = list()
+  for conv in converted:
+      conv = list(conv)
+      values.append(int(conv[0] + conv[-1]))
+
+  print(sum(values))
+#+end_src
+
+#+RESULTS: other_approach
+
 * Day 10
 ** Part One
 *** Problem
