@@ -484,6 +484,36 @@ Note that =count_possibilities= requires =row= to be just the list of characters
 #+name: convert_row
 #+begin_src python :results none
   r, g = line.split(' ')
-  g = [int(x) for x in g.split(',')]
+  g = tuple(int(x) for x in g.split(','))
   return r, g
 #+end_src
+
+** Part Two
+This is just a change in the input first. But, let's [[https://docs.python.org/3/library/functools.html#functools.cache][cache]]!
+
+#+begin_src python :noweb yes :tangle tangle/d12p2-new.py :var inputfile="inputs/day12.txt"
+  from functools import cache
+
+  def convert_row(line):
+      <<convert_row>>
+
+  with open(inputfile) as f:
+      rows = [convert_row(line) for line in f]
+
+  new_rows = list()
+  for row, groups in rows:
+      new_row = (row + '?') * 5
+      new_row = new_row[:-1]
+      new_groups = groups * 5
+      new_rows.append((new_row, new_groups))
+
+  @cache
+  def count_possibilities(row, groups):
+      <<count_possibilities>>
+
+  possibilities = [count_possibilities(r, g) for r, g in new_rows]
+  print(sum(possibilities))
+#+end_src
+
+#+RESULTS:
+: 2043098029844
