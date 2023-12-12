@@ -361,7 +361,7 @@ We can copy the finding of =empty_rows / empty_cols= from Part One:
 
 Now that we have the empty rows and columns, let's modify our calculation part so that we count the expanded rows and columns. I am going to use [[https://docs.python.org/3/library/bisect.html][bisect]] for this since it's fast.
 
-The way I do this is to look at each pair, f.e. =((5,0), (7,1))=. For each pair determine =x_min= and =x_max=, in the example =5= and =7=. The highest index of an empty row can be found by doing =bisect_right(empty_rows, x_max)=. The lowest index of an empty row can be found by doing =bisect_left(empty_rows, x_min)=. Having these indices is great, since the /amount/ of empty rows is simply =highest_index - lowest_index=, or in the code below, =last_empty_row - first_empty_row=. Analogous to columns, and you have the amount of empty rows and columns between the pair of galaxies, which you can multiply by =expansionfactor - 1= to get the effect of converting =1= empty row/column to =expansionfactor= empty rows/columns. 
+The way I do this is to look at each pair, f.e. =((5,0), (7,1))=. For each pair determine =x_min= and =x_max=, in the example =5= and =7=. The highest index of an empty row can be found by doing =bisect_right(empty_rows, x_max)=. The lowest index of an empty row can be found by doing =bisect_left(empty_rows, x_min)=. Having these indices is great, since the /amount/ of empty rows is simply =highest_index - lowest_index=, or in the code below, =last_empty_row - first_empty_row=. Analogous to columns, and you have the amount of empty rows and columns between the pair of galaxies, which you can multiply by =expansionfactor - 1= to get the effect of converting =1= empty row/column to =expansionfactor= empty rows/columns.
 
 #+name: new_sum_distance
 #+begin_src python :results none
@@ -400,3 +400,90 @@ The way I do this is to look at each pair, f.e. =((5,0), (7,1))=. For each pair 
 
 #+RESULTS: day_11_part_two_main
 : 702770569197
+
+* Day 12
+:PROPERTIES:
+:header-args: :results output :var inputfile="inputs/day12-ex.txt"
+:END:
+
+** Part One
+
+*** Problem
+We have a list of rows, with the following structure.
+
+#+begin_example
+???.### 1,1,3
+.??..??...?##. 1,1,3
+?#?#?#?#?#?#?#? 1,3,1,6
+????.#...#... 4,1,1
+????.######..#####. 1,6,5
+?###???????? 3,2,1
+#+end_example
+
+After the space, we have a comma-separated list of groups. Each group must be an contiguous group of =#= characters, separated by =.= chars. The =?= represent an unknown character that could be either =#= or =.=. The goal is to find the amount of arrangements that exist per row which are all valid according to the list of groups.
+
+*** Solution
+
+#+name: d12p1
+#+begin_src python :noweb yes :tangle tangle/d12p1.py :var inputfile="inputs/day12.txt"
+  def convert_row(line):
+      """Function that converts an input line to a row and a list of groups."""
+      <<convert_row>>
+
+  with open(inputfile) as f:
+      rows = [convert_row(line) for line in f]
+
+  def count_possibilities(row, groups):
+      <<count_possibilities>>
+
+  possibilities = (count_possibilities(r, g) for r, g in rows)
+  print(sum(possibilities))
+#+end_src
+
+#+RESULTS: d12p1
+: 6871
+
+Recursion! =count_possibilities= takes a row and an ordered list of groups. We look at the first character in the row, return =0= if know we cannot satisfy the groups, and =1= if we have satisfied it. If we do not know, we modify =groups=, remove some characters from =row=, and call =count_possibilities= with the smaller =row= and =groups=.
+
+If the first character is a =#=, we know we must have entered the first group. So, we must have =#= or =?= characters until the first group is saturated. If this cannot be done, the current row cannot be matched to the given groups, so we return =0=. If we encounter a =.=, we remove it. Easy peasy. If we encounter a =?=, we try both options and sum the amount of possibilities.
+
+#+name: count_possibilities
+#+begin_src python :results none
+  if len(groups) == 0 and '#' not in row:
+      return 1
+
+  if len(row) == 0 or len(groups) == 0:
+      return 0
+
+  first = row[0]
+  if first == '.':
+      return count_possibilities(row[1:], groups)
+
+  if first == '?':
+      one = count_possibilities('#' + row[1:], groups)
+      two = count_possibilities(row[1:], groups)
+      return one + two
+
+  if first == '#':
+      i = 1
+      try:
+          while ((i < len(row) and row[i] == '#') or
+                 (i < groups[0] and row[i] in ['?', '#'])):
+              i += 1
+      except IndexError:
+          return 0
+
+      if not i == groups[0]:
+          return 0
+
+      return count_possibilities(row[i + 1:], groups[1:])
+#+end_src
+
+Note that =count_possibilities= requires =row= to be just the list of characters =#=, =.= and =?=, and =groups= should be a list of integers. Let's re-use the variable =rows=.
+
+#+name: convert_row
+#+begin_src python :results none
+  r, g = line.split(' ')
+  g = [int(x) for x in g.split(',')]
+  return r, g
+#+end_src
