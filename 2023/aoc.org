@@ -660,3 +660,120 @@ This is just a change in the input first. But, let's [[https://docs.python.org/3
 
 #+RESULTS:
 : 2043098029844
+
+* Day 13
+** Part One
+*** Problem
+
+We are in a landscape of ash =.=, rocks =#= and mirrors. Given the following example input:
+#+begin_example
+#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#.
+
+#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#
+#+end_example
+
+we need to find out where the mirrors are. The first pattern above has a mirror between column 5 and 6, since columns 5/6, 4/7, 3/8 and 2/9 are perfectly mirrored. The second example pattern has a horizontal mirror between rows 4 and 5.
+
+The goal is to add up the *number of columns* to the /left/ of each vertical mirror, with *100 * number of rows* /above/ each horizontal mirror. The above example has 5 columns to the left, and 4 rows above a mirror, and has a total of *405*.
+
+*** Solution
+:PROPERTIES:
+:header-args: :results output :var inputfile="inputs/day13-ex.txt" :noweb yes
+:END:
+The first idea is to save a list of indices of rows/columns that are equal. For example, when iterating over the first example, we could see that col =2 == 9=, =3 == 8=, =4 == 7=, and =5 == 6=. Since each of these pairs sum up to the same number (=11=), and there is no other valid combination that sums up to =11=, we know that there must be a mirror at =11 / 2 = 5.5=, or between columns =5= and =6=.
+
+The meat of the function is this:
+
+#+begin_src python :tangle tangle/d13p1.py :var inputfile="inputs/day13.txt"
+  <<load_patterns>>
+
+  <<helper_functions>>
+
+  def find_value(pattern, multiplier):
+      duplicate_rows = find_duplicate_rows(pattern)
+      mirror = find_mirror(pattern, duplicate_rows)
+      if mirror:
+          return multiplier * (int(mirror) + 1)
+          print(total)
+      else:
+          return 0
+
+  total = 0
+  for pattern in patterns:
+      total += find_value(pattern, multiplier=100)
+      pattern = transpose(pattern)
+      total += find_value(pattern, multiplier=1)
+
+  print(total)
+#+end_src
+
+#+RESULTS:
+: 34911
+
+**** Helper functions
+Above, we call =find_duplicate_rows=, which takes in a pattern and returns a list of /pairs of indices/. =find_mirror= takes such a list, and returns the mirror that exists in this pattern (=None= otherwise). Finally, =transpose= simply tranpsoses the image, so we can reuse the function =find_duplicate_rows=.
+
+[[https://www.youtube.com/watch?v=lyDLAutA88s][David Beazley]] showed me the power of [[https://docs.python.org/3/library/collections.html#collections.defaultdict][defaultdict]], so I think that I might use that. For each row, I could save a list of indices that actually are these rows.
+
+#+name: helper_functions
+#+begin_src python
+  from itertools import combinations
+  from collections import defaultdict
+
+  def find_duplicate_rows(pattern):
+      rows = defaultdict(list)
+      for i, row in enumerate(pattern):
+          rows[row].append(i)
+
+      equal_rows = [rows[row] for row in rows if len(rows[row]) >= 2]
+      too_long = [equals for equals in equal_rows if len(equals) > 2]
+      for indices in too_long:
+          equal_rows.extend(map(list, combinations(indices, r=2)))
+          del equal_rows[equal_rows.index(indices)]
+      return sorted(equal_rows)
+
+
+  def find_mirror(pattern, duplicate_indices):
+      possible_mirrors = set()
+      for i1, i2 in duplicate_indices:
+          possible_mirrors.add(i1 + i2)
+
+      for mirror in possible_mirrors:
+          correct_duplicate_rows = [[x, mirror - x]
+                                    for x in range(0, int(mirror / 2) + 1)
+                                    if mirror - x < len(pattern)]
+          relevant_duplicates = [x for x in duplicate_indices
+                                 if sum(x) == mirror]
+          if correct_duplicate_rows == relevant_duplicates:
+              return mirror / 2
+
+  def transpose(pattern):
+      pattern = [''.join(col) for col in zip(*pattern)]
+      return pattern
+#+end_src
+
+#+RESULTS: helper_functions
+
+#+RESULTS:
+
+**** Load patterns
+#+name: load_patterns
+#+begin_src python
+  with open(inputfile) as f:
+      lines = ''.join(f.readlines()).strip()
+      patterns = [pattern.split('\n') for pattern in lines.split('\n\n')]
+#+end_src
+
+#+RESULTS: load_patterns
