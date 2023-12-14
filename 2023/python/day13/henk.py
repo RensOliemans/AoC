@@ -149,8 +149,3 @@ def inverted(c):
 def pretty_print(pattern):
     for row in pattern:
         print(row)
-
-start = time.time()
-inputfile = "input.txt"
-print(main(inputfile, 2))
-print(f"{time.time() - start:.5f}s")
