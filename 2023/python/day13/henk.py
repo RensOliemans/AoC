@@ -3,21 +3,15 @@ import math
 from itertools import combinations
 from collections import defaultdict
 
+
 def main(inputfile, part):
     with open(inputfile) as f:
         lines = ''.join(f.readlines()).strip()
         patterns = [pattern.split('\n') for pattern in lines.split('\n\n')]
 
-    if part == 1:
-        total = 0
-        for pattern in patterns:
-            total += part_one(pattern)
-        return total
-    else:
-        total = 0
-        for i, pattern in enumerate(patterns):
-            total += part_two(pattern)
-        return total
+    part = part_one if part == 1 else part_two
+
+    return sum(part(pattern) for pattern in patterns)
 
 
 def part_one(pattern):
@@ -29,23 +23,12 @@ def part_one(pattern):
 
 def part_two(pattern):
     total = 0
-    smudges = 0
     one = fix_smudge(pattern, multiplier=100)
     if one:
-        smudges += 1
-
-    pattern = transpose(pattern)
-
-    two = fix_smudge(pattern, multiplier=1)
-    if two:
-        smudges += 1
-
-    if not smudges == 1:
+        return one
+    else:
         pattern = transpose(pattern)
-        pretty_print(pattern)
-        raise ValueError()
-
-    return one if one else two
+        return fix_smudge(pattern, multiplier=1)
 
 
 def find_value(pattern, multiplier):
@@ -112,7 +95,6 @@ def fix_smudge(pattern, multiplier):
     duplicate_rows = find_duplicate_rows(pattern)
     possible_smudges = list(find_smudges(pattern, duplicate_rows))
     for smudge in possible_smudges:
-        assert len(smudge) == 1
         smudge = smudge.pop()
         row1 = int(to_bits(pattern[smudge[0]]), 2)
         row2 = int(to_bits(pattern[smudge[1]]), 2)
@@ -122,9 +104,6 @@ def fix_smudge(pattern, multiplier):
                 return multiplier * (int((smudge[0] + smudge[1]) / 2) + 1)
         except ValueError:
             continue
-
-    return 0
-
 
 def to_bits(row):
     return row.replace('#', '1').replace('.', '0')
