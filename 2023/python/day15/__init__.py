@@ -2,10 +2,12 @@ from .henk import main
 
 from pathlib import Path
 
-path = Path(__file__).parent / "input.txt"
+parent = Path(__file__).parent
 
-def part_one():
+def part_one(testfile = False):
+    path = parent / ("input.txt" if not testfile else "test.txt")
     print(main(path, 1))
 
-def part_two():
+def part_two(testfile = False):
+    path = parent / ("input.txt" if not testfile else "test.txt")
     print(main(path, 2))
