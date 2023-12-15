@@ -20,19 +20,17 @@ args = parser.parse_args()
 dagen = args.dagen if type(args.dagen) is list else [args.dagen]
 
 success = False
-if type(dagen) is list:
-    for dag in dagen:
-        try:
-            module = importlib.import_module(f"day{dag}")
-        except ModuleNotFoundError:
-            print(f"Dag {dag} bestaat niet!", file=sys.stderr)
-            continue
+for dag in dagen:
+    try:
+        module = importlib.import_module(f"day{dag}")
+    except ModuleNotFoundError:
+        print(f"Dag {dag} bestaat niet!", file=sys.stderr)
+        continue
 
-        print(f"Dag {dag}:")
-        module.part_one(args.test)
-        module.part_two(args.test)
-        success = True
+    print(f"Dag {dag}:")
+    module.part_one(args.test)
+    module.part_two(args.test)
+    success = True
 
 if not success:
     sys.exit(1)
-
