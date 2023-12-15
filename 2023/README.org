@@ -6,7 +6,9 @@ Ik probeerde in het begin het te doen met [[http://www.literateprogramming.com/k
 
 Vanaf [[file:python/day13/henk.py][dag 13]] doe ik het gewoon in python. Je kunt
 
-    from python import day13
-    day13.part_one()
+#+begin_src python
+  from python import day13
+  day13.part_one()
+#+end_src
 
 doen enzo.
