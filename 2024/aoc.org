@@ -3,10 +3,19 @@
 
 Finding the Chief Historian! This program contains my [[https://adventofcode.com/][Advent of Code]] solutions for 2024, which you can find on my [[https://sr.ht/~rensoliemans/AoC/][sourcehut]] and [[https://github.com/RensOliemans/AoC/][GitHub]]. I believe GitHub doesn't show the results of code blocks, which means that viewing it there might leave you a bit confused.
 
+* Readme                                                           :noexport:
+:PROPERTIES:
+:EXPORT_FILE_NAME: README.md
+:EXPORT_OPTIONS: toc:nil
+:END:
+
+** AoC 2024
+Ook dit jaar weer een [[http://www.literateprogramming.com/knuthweb.pdf][literate program]]! Check out =aoc.org= voor het programma, en =aoc.pdf= voor één output ervan (de andere output is gouden sterren).
+
 * Day 1
 :PROPERTIES:
-:header-args: :tangle day1.clj :exports both
-:header-args:clojure: :session *clojure-1*
+:header-args: :tangle day01.clj :exports both
+:header-args:clojure: :session *clojure-01*
 :END:
 
 ** Part 1
@@ -113,13 +122,4 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 
 #+RESULTS:
 : 23177084
-
-* Readme                                                           :noexport:
-:PROPERTIES:
-:EXPORT_FILE_NAME: README.md
-:EXPORT_OPTIONS: toc:nil
-:END:
-
-** AoC 2024
-Ook dit jaar weer een [[http://www.literateprogramming.com/knuthweb.pdf][literate program]]! Check out =aoc.org= voor het programma, en =aoc.pdf= voor één output ervan (de andere output is gouden sterren).
 
