@@ -1,5 +1,8 @@
-#+title: Advent of Code 2024
-#+author: Rens Oliemans
+#+TITLE: Advent of Code 2024
+#+AUTHOR: Rens Oliemans
+#+DESCRIPTION: My Advent of Code solutions for 2024
+#+LATEX_CLASS_OPTIONS: [a4paper,11pt]
+#+LATEX_HEADER: \usepackage{minted}
 
 Finding the Chief Historian! This program contains my [[https://adventofcode.com/][Advent of Code]] solutions for 2024, which you can find on my [[https://sr.ht/~rensoliemans/AoC/][sourcehut]] and [[https://github.com/RensOliemans/AoC/][GitHub]]. I believe GitHub doesn't show the results of code blocks, which means that viewing it there might leave you a bit confused.
 
