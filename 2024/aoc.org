@@ -1,6 +1,7 @@
 #+TITLE: Advent of Code 2024
 #+AUTHOR: Rens Oliemans
 #+DESCRIPTION: My Advent of Code solutions for 2024
+#+STARTUP: overview
 #+LATEX_CLASS_OPTIONS: [a4paper,11pt]
 #+LATEX_HEADER: \usepackage{minted}
 
@@ -38,7 +39,10 @@ And our goal is to find the "distance" between the two lists.
 #+begin_quote
 To find the total distance between the left list and the right list, add up the distances between all of the [sorted] pairs you found.
 #+end_quote
-For the example above, the correct answer is *11*. My strategy is: convert the input to pairs of numbers, tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it. Since we might require the input as lists of numbers later separately, we can create a function that parses the input and returns pairs of numbers.:
+For the example above, the correct answer is *11*.
+
+My strategy is: convert the input to pairs of numbers, tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it.
+Since we might require the input as lists of numbers later separately, we can create a function that parses the input and returns pairs of numbers:
 #+begin_src clojure :results silent
   (ns aoc.1
     (:require [clojure.string :as str]))
@@ -56,7 +60,8 @@ Verify that it works:
              (numbers testinput)))
 #+end_src
 
-Now, I'm going to tranpose these lists, sort them, tranpose them again, take the difference, and sum it. Makes sense? We need the two tiny helper functions =sum= and =tranpose=:
+Now, I'm going to tranpose these lists, sort them, tranpose them again, take the difference, and sum it.
+Makes sense? We need the two tiny helper functions =sum= and =tranpose=:
 #+begin_src clojure :results silent
   (defn- sum "Finds the sum of a vector of numbers" [vec]
     (reduce + vec))
@@ -65,7 +70,8 @@ Now, I'm going to tranpose these lists, sort them, tranpose them again, take the
     (apply mapv vector m))
 #+end_src
 
-With the final function being now quite easy to follow if you keep my strategy above in mind. Recall that the correct answer for the testinput was 11.
+With the final function being now quite easy to follow if you keep my strategy above in mind.
+Recall that the correct answer for the testinput was 11.
 #+begin_src clojure
   (defn p1 [input]
     (let [input (numbers input)]
@@ -82,7 +88,8 @@ With the final function being now quite easy to follow if you keep my strategy a
 #+RESULTS:
 : 11
 
-It works for the testinput, fantastic. Now let's open the file and run it on the input. The input file for day 1 can be found in the file =inputs/1=.
+It works for the testinput, fantastic. Now let's open the file and run it on the input.
+The input file for day 1 can be found in the file =inputs/1=.
 
 #+begin_src clojure
   (def input (slurp "inputs/1"))
@@ -100,7 +107,10 @@ Now, we need to find a "similarity score" for the two lists:
 Calculate a total similarity score by adding up each number in the left list after multiplying it by the number of times that number appears in the right list.
 #+end_quote
 
-A naïve way to do this would be to iterate over the first list, where, for each element, we count how many items in the second list are equal to that element, and multiply the element with the count. However, you'd be doing a lot of duplicate counting. A faster way to do it is to convert the second (it doesn't really matter which one you pick) list to a map once, with ={element frequency}=. Let's use the function =frequencies=!
+A naïve way to do this would be to iterate over the first list, where, for each element, we count how many items in the second list are equal to that element, and multiply the element with the count.
+However, you'd be doing a lot of duplicate counting.
+A faster way to do it is to convert the second (it doesn't really matter which one you pick) list to a map once, with ={element frequency}=.
+Let's use the function =frequencies=!
 
 #+begin_src clojure :tangle no
   (frequencies (last (transpose (numbers testinput))))
@@ -126,4 +136,3 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 
 #+RESULTS:
 : 23177084
-
