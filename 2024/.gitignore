@@ -2,6 +2,7 @@ inputs
 .nrepl-port
 aoc.tex
 day*.clj
+util.clj
 _minted*/
 
 # Created by https://www.toptal.com/developers/gitignore/api/clojure

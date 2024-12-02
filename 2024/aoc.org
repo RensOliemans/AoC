@@ -7,15 +7,65 @@
 
 Finding the Chief Historian! This program contains my [[https://adventofcode.com/][Advent of Code]] solutions for 2024, which you can find on my [[https://sr.ht/~rensoliemans/AoC/][sourcehut]] and [[https://github.com/RensOliemans/AoC/][GitHub]]. I believe GitHub doesn't show the results of code blocks, which means that viewing it there might leave you a bit confused.
 
-* Readme                                                           :noexport:
+* Utils
 :PROPERTIES:
-:EXPORT_FILE_NAME: README.md
-:EXPORT_OPTIONS: toc:nil
+:header-args: :tangle util.clj
+:header-args:clojure: :session *clojure-util* :results silent
 :END:
 
-** AoC 2024
-Ook dit jaar weer een [[http://www.literateprogramming.com/knuthweb.pdf][literate program]]! Check out =aoc.org= voor het programma, en =aoc.pdf= voor één output ervan (de andere output is gouden sterren).
+I have some common functions in =aoc.util=, mostly related to parsing the input. The input always comes in a file but also usually has an example input. The former is a file (which we convert to a string with =slurp= and the latter is just the string itself. Therefore it's easiest to let the days itself take care of reading the file (since they also have the example input), and just operate on strings.
 
+#+begin_src clojure
+  (ns aoc.util
+    (:require [clojure.string :as str]))
+
+  (defn string-as-lines
+    "Outputs the string as a vector, one element per line."
+    [input]
+    (str/split input #"\n"))
+#+end_src
+
+Often the lines contain numbers:
+#+begin_src clojure
+  (defn string-as-numbers-per-line
+    "Assumes there is a number on each line: we parse it and return a
+    vector, one element per line. Technically each number is parsed with
+    `read-string`, so it isn't just limited to numbers, but I've only
+    tested numbers."
+    [input]
+    (let [lines (string-as-lines input)]
+      (map read-string lines)))
+#+end_src
+
+or lists of numbers. This was the case in both [[*Day 1][Day 1]] and [[*Day 2][Day 2]], where the input had the following format:
+#+NAME: util-testtable
+#+begin_example
+7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9
+#+end_example
+Here, we want the whole file te be represented by a vector, where each element is itself a vector of the space-separated numbers on a line.
+#+begin_src clojure
+  (defn string-as-list-of-numbers-per-line
+    "Returns a vector of vectors, the outer vector has an element per
+    line, the inner has space-separated elements. "
+    [input]
+    (let [lines (string-as-lines input)]
+      (->> lines
+           (map #(str/split % #"\s+"))
+           (map #(map read-string %)))))
+#+end_src
+
+This function, outputted on the example table seen above, will return the following:
+#+begin_src clojure :results value replace :var example=util-testtable :tangle no
+  (string-as-list-of-numbers-per-line example)
+#+end_src
+
+#+RESULTS:
+: ((7 6 4 2 1) (1 2 7 8 9) (9 7 6 2 1) (1 3 2 4 5) (8 6 4 4 1) (1 3 6 7 9))
 
 * Day 1
 :PROPERTIES:
