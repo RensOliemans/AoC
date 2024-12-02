@@ -9,7 +9,7 @@ Finding the Chief Historian! This program contains my [[https://adventofcode.com
 
 * Utils
 :PROPERTIES:
-:header-args: :tangle util.clj
+:header-args: :tangle util.clj :exports both
 :header-args:clojure: :session *clojure-util* :results silent
 :END:
 
@@ -91,7 +91,7 @@ To find the total distance between the left list and the right list, add up the 
 #+end_quote
 For the example above, the correct answer is *11*.
 
-My strategy is: convert the input to pairs of numbers (=util/string-as-list-of-numbers-per-line= takes care of this), tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it.
+My strategy is: convert the input to pairs of numbers (our util functions take care of this), tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it.
 
 I'm going to tranpose these lists, sort them, tranpose them again, take the difference, and sum it.
 Makes sense? We need the two tiny helper functions =sum= and =tranpose=:
