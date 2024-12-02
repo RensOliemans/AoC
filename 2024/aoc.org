@@ -69,8 +69,8 @@ This function, outputted on the example table seen above, will return the follow
 
 * Day 1
 :PROPERTIES:
-:header-args: :tangle day01.clj :exports both
-:header-args:clojure: :session *clojure-01* :var testinput=testinput1
+:header-args: :tangle day1.clj :exports both
+:header-args:clojure: :session *clojure-1* :var testinput=testinput1
 :END:
 
 ** Part 1
@@ -91,28 +91,14 @@ To find the total distance between the left list and the right list, add up the 
 #+end_quote
 For the example above, the correct answer is *11*.
 
-My strategy is: convert the input to pairs of numbers, tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it.
-Since we might require the input as lists of numbers later separately, we can create a function that parses the input and returns pairs of numbers:
-#+begin_src clojure :results silent
-  (ns aoc.1
-    (:require [clojure.string :as str]))
+My strategy is: convert the input to pairs of numbers (=util/string-as-list-of-numbers-per-line= takes care of this), tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it.
 
-  (defn numbers "Converts the puzzle input into pairs of numbers" [input]
-    (let [lines (str/split input #"\n")]
-      (->> lines
-           (map #(str/split % #" +"))
-           (map #(map read-string %)))))
-#+end_src
-
-Verify that it works:
-#+begin_src clojure :tangle no :results silent
-  (assert (= '((3 4) (4 3) (2 5) (1 3) (3 9) (3 3))
-             (numbers testinput)))
-#+end_src
-
-Now, I'm going to tranpose these lists, sort them, tranpose them again, take the difference, and sum it.
+I'm going to tranpose these lists, sort them, tranpose them again, take the difference, and sum it.
 Makes sense? We need the two tiny helper functions =sum= and =tranpose=:
 #+begin_src clojure :results silent
+  (ns aoc.1
+    (:require [aoc.util :as util]))
+
   (defn- sum "Finds the sum of a vector of numbers" [vec]
     (reduce + vec))
 
@@ -124,7 +110,7 @@ With the final function being now quite easy to follow if you keep my strategy a
 Recall that the correct answer for the testinput was 11.
 #+begin_src clojure
   (defn p1 [input]
-    (let [input (numbers input)]
+    (let [input (util/string-as-list-of-numbers-per-line input)]
       (->> input
            (transpose)
            (map sort)
@@ -163,7 +149,7 @@ A faster way to do it is to convert the second (it doesn't really matter which o
 Let's use the function =frequencies=!
 
 #+begin_src clojure :tangle no
-  (frequencies (last (transpose (numbers testinput))))
+  (frequencies (last (transpose (util/string-as-list-of-numbers-per-line testinput))))
 #+end_src
 
 #+RESULTS:
@@ -173,7 +159,7 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 
 #+begin_src clojure
   (defn p2 [input]
-    (let [input (transpose (numbers input))
+    (let [input (transpose (util/string-as-list-of-numbers-per-line input))
           one (first input)
           freqs (frequencies (second input))]
       (->> one
@@ -186,6 +172,7 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 
 #+RESULTS:
 : 23177084
+
 * Day 2
 :PROPERTIES:
 :header-args: :tangle day2.clj :exports both :var testinput=testinput2
