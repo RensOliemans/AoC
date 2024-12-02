@@ -234,12 +234,11 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 
 #+begin_src clojure
   (defn drop-nth [coll n]
-     (keep-indexed #(if (not= %1 n) %2) coll))
+    (keep-indexed #(if (not= %1 n) %2) coll))
 
   (defn dampened-is-safe? [record]
-    (or (is-safe? record)
-        (some is-safe? (map #(drop-nth record %)
-                            (range (count record))))))
+    (some is-safe? (map #(drop-nth record %)
+                        (range (count record)))))
 
   (defn p2 [input]
     (->> (numbers input)
