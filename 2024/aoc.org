@@ -136,3 +136,153 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 
 #+RESULTS:
 : 23177084
+* Day 2
+:PROPERTIES:
+:header-args: :tangle day2.clj :exports both :var testinput=testinput2
+:header-args:clojure: :session *clojure-2*
+:END:
+
+** Part 1
+Analyzing some unusual data from a nuclear reactor. The data consists of /reports/ separated by lines, each of which is a list of numbers (/levels/), separated by spaces.
+
+#+NAME: testinput2
+#+begin_example
+7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9
+#+end_example
+
+We need to find out how many reports are *safe*, which is the case if all levels are gradually increasing or decreasing. This is defined as such:
+#+begin_quote
+So, a report only counts as safe if both of the following are true:
+
+ - The levels are either all increasing or all decreasing.
+ - Any two adjacent levels differ by at least one and at most three.
+#+end_quote
+In the example input, there are *2* safe reports—the first and last.
+
+Let's convert all numbers to the difference between the previous number.
+Then, a report is safe is all numbers are of the same sign, and the absolute of the number is between 1 and 3.
+First, we'll need to convert the input to a matrix of numbers, like we did in [[*Day 1][Day 1]].
+I'm not sure how to best make common functions in literate programming, I have to think about that.
+#+begin_src clojure :results silent
+  (ns aoc.2
+    (:require [clojure.string :as str]))
+
+  (defn numbers "Takes a string and returns a matrix of numbers" [input]
+    (let [lines (str/split input #"\n")]
+      (->> lines
+           (map #(str/split % #" +"))
+           (map #(map read-string %)))))
+#+end_src
+
+Verification:
+#+begin_src clojure :results silent :tangle no
+  (assert (= (last (numbers testinput))
+             '(1 3 6 7 9)))
+#+end_src
+
+Since we're computing the difference between each element and the element before, I want to use =partition=, which does exactly this. Then, we can use =mapv= to compute the difference. For the last element of the testinput:
+#+begin_src clojure :results output
+  (defn diffs [record]
+    (->> record
+         (partition 2 1)
+         (mapv (fn [[a b]] (- b a)))))
+
+  (println (diffs (last (numbers testinput))))
+#+end_src
+
+#+RESULTS:
+: [2 3 1 2]
+
+Now just use that to determine whether a record is safe. Recall that the testinput had *2* safe records.
+#+begin_src clojure
+  (defn is-safe? [record]
+    (let [differences (diffs record)]
+      (and (every? #(<= 1 (abs %) 3) differences)
+           (apply = (map pos? differences)))))
+
+  (defn p1 [input]
+    (->> (numbers input)
+         (filter is-safe?)
+         (count)))
+
+  (p1 testinput)
+#+end_src
+
+#+RESULTS:
+: 2
+
+#+begin_src clojure
+  (def input (slurp "inputs/2"))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 242
+
+😎
+
+** Part 2
+#+begin_quote
+Now, the same rules apply as before, except if removing a single level from an unsafe report would make it safe, the report instead counts as safe.
+#+end_quote
+Each "difference" is the difference between a pair of levels. If that difference has a different sign than the rest, or is absolutely not between 1 and 3, it is unsafe.
+Rather than removing levels and recomputing the differences, we can do something slightly smarter. It's still a bit convoluted, but at least it's nicer than removing all levels one by one for each record.
+
+We check the following:
+1. If it's already safe, it's safe.
+2. If we find an /single/ unsafe difference, the record is safe if that's at the beginning or
+   end.
+3. If we find /two/ unsafe differences next to each other, we replace them by /their/
+   differences, and check the new differences.
+4. Else, the record is unsafe.
+
+#+begin_src clojure
+  (defn sign-minorities [differences]
+    (let [poss (map pos? differences)
+          freq (frequencies poss)
+          minority-bool (< (get freq true 0) (get freq false 0))]
+      (keep-indexed #(when (= %2 minority-bool) %1) poss)))
+
+  (defn unsafe-indices [differences]
+    (sort (distinct (concat
+                     (sign-minorities differences)
+                     (keep-indexed #(when (not (<= 1 (abs %2) 3)) %1) differences)))))
+
+  (defn drop-nth [n coll]
+     (keep-indexed #(if (not= %1 n) %2) coll))
+
+  (defn dampened-is-safe? [record]
+    (or (is-safe? record)
+        (let [differences (diffs record)
+              unsafe-diff-ids (unsafe-indices differences)
+              num (count unsafe-diff-ids)]
+          (cond
+            (= num 0) true
+            (= num 1) (let [i (first unsafe-diff-ids)]
+                        (or (is-safe? (drop-nth i record))
+                            (is-safe? (drop-nth (+ i 1) record))))
+            (= num 2) (or (is-safe? (drop-nth (first unsafe-diff-ids) record))
+                          (is-safe? (drop-nth (last unsafe-diff-ids) record)))))))
+
+  (defn p2 [input]
+    (->> (numbers input)
+         (filter dampened-is-safe?)
+         (count)))
+
+  (p2 testinput)
+#+end_src
+
+#+RESULTS:
+: 4
+
+#+begin_src clojure
+  (p2 input)
+#+end_src
+
+#+RESULTS:
+: 311
