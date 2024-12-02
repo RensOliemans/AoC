@@ -230,44 +230,16 @@ Now just use that to determine whether a record is safe. Recall that the testinp
 #+begin_quote
 Now, the same rules apply as before, except if removing a single level from an unsafe report would make it safe, the report instead counts as safe.
 #+end_quote
-Each "difference" is the difference between a pair of levels. If that difference has a different sign than the rest, or is absolutely not between 1 and 3, it is unsafe.
-Rather than removing levels and recomputing the differences, we can do something slightly smarter. It's still a bit convoluted, but at least it's nicer than removing all levels one by one for each record.
-
-We check the following:
-1. If it's already safe, it's safe.
-2. If we find an /single/ unsafe difference, the record is safe if that's at the beginning or
-   end.
-3. If we find /two/ unsafe differences next to each other, we replace them by /their/
-   differences, and check the new differences.
-4. Else, the record is unsafe.
+First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][e2dcab2f0de76c21477c5e871e029f0282c8fabc]]. It is much more efficient than the current solution, but much more convoluted and ugly to read. Right now, I just remove each level one by one and check if the record is safe then.
 
 #+begin_src clojure
-  (defn sign-minorities [differences]
-    (let [poss (map pos? differences)
-          freq (frequencies poss)
-          minority-bool (< (get freq true 0) (get freq false 0))]
-      (keep-indexed #(when (= %2 minority-bool) %1) poss)))
-
-  (defn unsafe-indices [differences]
-    (sort (distinct (concat
-                     (sign-minorities differences)
-                     (keep-indexed #(when (not (<= 1 (abs %2) 3)) %1) differences)))))
-
-  (defn drop-nth [n coll]
+  (defn drop-nth [coll n]
      (keep-indexed #(if (not= %1 n) %2) coll))
 
   (defn dampened-is-safe? [record]
     (or (is-safe? record)
-        (let [differences (diffs record)
-              unsafe-diff-ids (unsafe-indices differences)
-              num (count unsafe-diff-ids)]
-          (cond
-            (= num 0) true
-            (= num 1) (let [i (first unsafe-diff-ids)]
-                        (or (is-safe? (drop-nth i record))
-                            (is-safe? (drop-nth (+ i 1) record))))
-            (= num 2) (or (is-safe? (drop-nth (first unsafe-diff-ids) record))
-                          (is-safe? (drop-nth (last unsafe-diff-ids) record)))))))
+        (some is-safe? (map #(drop-nth record %)
+                            (range (count record))))))
 
   (defn p2 [input]
     (->> (numbers input)
@@ -286,3 +258,6 @@ We check the following:
 
 #+RESULTS:
 : 311
+
+*** Benchmark results
+The old solution took on average =3.8= milliseconds to execute ~(p2 input)~, and the new solution about =6.0=. This is worth it, imo, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
