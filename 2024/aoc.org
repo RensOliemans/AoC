@@ -3,7 +3,6 @@
 #+DESCRIPTION: My Advent of Code solutions for 2024
 #+STARTUP: overview
 #+LATEX_CLASS_OPTIONS: [a4paper,11pt]
-#+LATEX_HEADER: \usepackage{minted}
 
 Finding the Chief Historian! This program contains my [[https://adventofcode.com/][Advent of Code]] solutions for 2024, which you can find on my [[https://sr.ht/~rensoliemans/AoC/][sourcehut]] and [[https://github.com/RensOliemans/AoC/][GitHub]]. I believe GitHub doesn't show the results of code blocks, which means that viewing it there might leave you a bit confused.
 
@@ -49,7 +48,9 @@ Since we might require the input as lists of numbers later separately, we can cr
 #+begin_src clojure -n -r :results silent
   (ns aoc.1
     (:require [clojure.string :as str]))
+#+end_src
 
+#+begin_src clojure +n 1 :results silent
   (defn numbers "Converts the puzzle input into pairs of numbers" [input]
     (let [lines (str/split input #"\n")]
       (->> lines
@@ -173,7 +174,9 @@ I'm not sure how to best make common functions in literate programming, I have t
 #+begin_src clojure -n -r :results silent
   (ns aoc.2
     (:require [clojure.string :as str]))
+#+end_src
 
+#+begin_src clojure +n 1 :results silent
   (defn numbers "Takes a string and returns a matrix of numbers" [input]
     (let [lines (str/split input #"\n")]
       (->> lines
@@ -277,7 +280,9 @@ xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))
 The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=, and in that case multiply the two numbers together. This is straightforward, I'm not really going to create any helper functions: parse with regex, convert to int, multiply and sum.
 #+begin_src clojure -n -r :results silent
   (ns aoc.3)
+#+end_src
 
+#+begin_src clojure +n 1 :results silent
   (defn p1 [input]
     (let [matches (re-seq #"mul\((\d+),(\d+)\)" input)]
       (->> matches
