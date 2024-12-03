@@ -9,16 +9,6 @@ Finding the Chief Historian! This program contains my [[https://adventofcode.com
 In general, I've added line numbers to code blocks when that code block is part of the solution file. In some cases, I've added code to explain, clarify, justify or otherify something, and these lines aren't necessary to the final solution and thus aren't numbered.
 #+LATEX: \clearpage
 
-* Readme                                                           :noexport:
-:PROPERTIES:
-:EXPORT_FILE_NAME: README.md
-:EXPORT_OPTIONS: toc:nil
-:END:
-
-** AoC 2024
-Ook dit jaar weer een [[http://www.literateprogramming.com/knuthweb.pdf][literate program]]! Check out =aoc.org= voor het programma, en =aoc.pdf= voor één output ervan (de andere output is gouden sterren).
-
-
 * Day 1
 :PROPERTIES:
 :header-args: :tangle src/day1.clj :exports both
