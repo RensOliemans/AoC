@@ -19,7 +19,7 @@ Ook dit jaar weer een [[http://www.literateprogramming.com/knuthweb.pdf][literat
 
 * Day 1
 :PROPERTIES:
-:header-args: :tangle day01.clj :exports both
+:header-args: :tangle src/day1.clj :exports both
 :header-args:clojure: :session *clojure-01* :var testinput=testinput1
 :END:
 
@@ -138,7 +138,7 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 : 23177084
 * Day 2
 :PROPERTIES:
-:header-args: :tangle day2.clj :exports both :var testinput=testinput2
+:header-args: :tangle src/day2.clj :exports both :var testinput=testinput2
 :header-args:clojure: :session *clojure-2*
 :END:
 
@@ -186,13 +186,13 @@ Verification:
 #+end_src
 
 Since we're computing the difference between each element and the element before, I want to use =partition=, which does exactly this. Then, we can use =mapv= to compute the difference. For the last element of the testinput:
-#+begin_src clojure :results output
+#+begin_src clojure
   (defn diffs [record]
     (->> record
          (partition 2 1)
          (mapv (fn [[a b]] (- b a)))))
 
-  (println (diffs (last (numbers testinput))))
+  (diffs (last (numbers testinput)))
 #+end_src
 
 #+RESULTS:
@@ -260,3 +260,64 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 
 *** Benchmark results
 The old solution took on average =3.8= milliseconds to execute ~(p2 input)~, and the new solution about =6.0=. This is worth it, imo, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
+* Day 3
+:PROPERTIES:
+:header-args: :tangle day3.clj :exports both
+:header-args:clojure: :session *clojure-3*
+:END:
+** Part 1
+We have an input string that contains a lot of characters, for example:
+#+begin_example
+xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))
+#+end_example
+
+The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=, and in that case multiply the two numbers together. This is straightforward, I'm not really going to create any helper functions: parse with regex, convert to int, multiply and sum.
+#+begin_src clojure :results silent
+  (ns aoc.3
+    (:require [clojure.string :as str]))
+
+  (defn p1 [input]
+    (let [matches (re-seq #"mul\((\d+),(\d+)\)" input)]
+      (->> matches
+           (map #(list (Integer/parseInt (nth % 1)) (Integer/parseInt (nth % 2))))
+           (map #(apply * %))
+           (reduce +))))
+#+end_src
+
+#+begin_src clojure
+  (let [input (slurp "inputs/3")]
+    (p1 input))
+#+end_src
+
+#+RESULTS:
+: 155955228
+
+** Part 2
+We get a new example string for Part Two:
+#+begin_example
+xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))
+#+end_example
+
+This contains the substrings =don't()= and =do()=, which disable and enable =mul()= instructions. I can do fancy clojure things, but Emacs is way too good for this, so let's do it quickly in Elisp. The goal is to simply remove everything from the input file thats in between a =don't()= and a =do()= instruction, and then call =(p1)= on this input.
+There are three slightly tricky things about this:
+- The input file has some newlines, and in some cases a =do()= instruction is on a later line
+  than the previous =don't()= instruction.
+- You need to match non-greedy in between a =don't()= and a =do()=.
+- If you call =(replace-regexp)= with just the regex and replacement string, it will move
+  point to the last match. This is easily fixed by adding the fourth and fifth arguments to
+  =replace-regexp=: =START= and =END=
+#+begin_src elisp :results none
+  (with-temp-buffer
+    (insert-file-contents "inputs/3")
+    (replace-regexp "\n" "" nil (point-min) (point-max))
+    (replace-regexp "don't().+?do()" "" nil (point-min) (point-max))
+    (write-region (point-min) (point-max) "inputs/3-enabled"))
+#+end_src
+
+#+begin_src clojure
+  (let [fixed-input (slurp "inputs/3-enabled")]
+    (p1 fixed-input))
+#+end_src
+
+#+RESULTS:
+: 100189366
