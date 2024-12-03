@@ -7,6 +7,9 @@
 
 Finding the Chief Historian! This program contains my [[https://adventofcode.com/][Advent of Code]] solutions for 2024, which you can find on my [[https://sr.ht/~rensoliemans/AoC/][sourcehut]] and [[https://github.com/RensOliemans/AoC/][GitHub]]. I believe GitHub doesn't show the results of code blocks, which means that viewing it there might leave you a bit confused.
 
+In general, I've added line numbers to code blocks when that code block is part of the solution file. In some cases, I've added code to explain, clarify, justify or otherify something, and these lines aren't necessary to the final solution and thus aren't numbered.
+#+LATEX: \clearpage
+
 * Readme                                                           :noexport:
 :PROPERTIES:
 :EXPORT_FILE_NAME: README.md
@@ -43,7 +46,7 @@ For the example above, the correct answer is *11*.
 
 My strategy is: convert the input to pairs of numbers, tranpose them (so we have two lists), sort them, tranpose them again (pairs), and take the difference and sum it.
 Since we might require the input as lists of numbers later separately, we can create a function that parses the input and returns pairs of numbers:
-#+begin_src clojure :results silent
+#+begin_src clojure -n -r :results silent
   (ns aoc.1
     (:require [clojure.string :as str]))
 
@@ -62,7 +65,7 @@ Verify that it works:
 
 Now, I'm going to tranpose these lists, sort them, tranpose them again, take the difference, and sum it.
 Makes sense? We need the two tiny helper functions =sum= and =tranpose=:
-#+begin_src clojure :results silent
+#+begin_src clojure +n 1 :results silent
   (defn- sum "Finds the sum of a vector of numbers" [vec]
     (reduce + vec))
 
@@ -72,7 +75,7 @@ Makes sense? We need the two tiny helper functions =sum= and =tranpose=:
 
 With the final function being now quite easy to follow if you keep my strategy above in mind.
 Recall that the correct answer for the testinput was 11.
-#+begin_src clojure
+#+begin_src clojure +n 1
   (defn p1 [input]
     (let [input (numbers input)]
       (->> input
@@ -91,7 +94,7 @@ Recall that the correct answer for the testinput was 11.
 It works for the testinput, fantastic. Now let's open the file and run it on the input.
 The input file for day 1 can be found in the file =inputs/1=.
 
-#+begin_src clojure
+#+begin_src clojure +n 1
   (def input (slurp "inputs/1"))
   (p1 input)
 #+end_src
@@ -121,7 +124,7 @@ Let's use the function =frequencies=!
 
 Now, we can iterate over the first list (which we get by ~(tranpose (numbers input))~), multiply the element itself by the count in =frequencies=, and sum the result.
 
-#+begin_src clojure
+#+begin_src clojure +n 1
   (defn p2 [input]
     (let [input (transpose (numbers input))
           one (first input)
@@ -136,6 +139,7 @@ Now, we can iterate over the first list (which we get by ~(tranpose (numbers inp
 
 #+RESULTS:
 : 23177084
+#+LATEX: \clearpage
 * Day 2
 :PROPERTIES:
 :header-args: :tangle src/day2.clj :exports both :var testinput=testinput2
@@ -157,18 +161,16 @@ Analyzing some unusual data from a nuclear reactor. The data consists of /report
 
 We need to find out how many reports are *safe*, which is the case if all levels are gradually increasing or decreasing. This is defined as such:
 #+begin_quote
-So, a report only counts as safe if both of the following are true:
+[A] report only counts as safe if both of the following are true:
 
  - The levels are either all increasing or all decreasing.
  - Any two adjacent levels differ by at least one and at most three.
 #+end_quote
 In the example input, there are *2* safe reports—the first and last.
 
-Let's convert all numbers to the difference between the previous number.
-Then, a report is safe is all numbers are of the same sign, and the absolute of the number is between 1 and 3.
-First, we'll need to convert the input to a matrix of numbers, like we did in [[*Day 1][Day 1]].
+Let's convert all numbers to the difference between the previous number. Then, a report is safe is all numbers are of the same sign, and the absolute of the number is between 1 and 3. First, we'll need to convert the input to a matrix of numbers, like we did in [[*Day 1][Day 1]].
 I'm not sure how to best make common functions in literate programming, I have to think about that.
-#+begin_src clojure :results silent
+#+begin_src clojure -n -r :results silent
   (ns aoc.2
     (:require [clojure.string :as str]))
 
@@ -186,7 +188,7 @@ Verification:
 #+end_src
 
 Since we're computing the difference between each element and the element before, I want to use =partition=, which does exactly this. Then, we can use =mapv= to compute the difference. For the last element of the testinput:
-#+begin_src clojure
+#+begin_src clojure +n 1
   (defn diffs [record]
     (->> record
          (partition 2 1)
@@ -199,7 +201,7 @@ Since we're computing the difference between each element and the element before
 : [2 3 1 2]
 
 Now just use that to determine whether a record is safe. Recall that the testinput had *2* safe records.
-#+begin_src clojure
+#+begin_src clojure +n 1
   (defn is-safe? [record]
     (let [differences (diffs record)]
       (and (every? #(<= 1 (abs %) 3) differences)
@@ -216,7 +218,7 @@ Now just use that to determine whether a record is safe. Recall that the testinp
 #+RESULTS:
 : 2
 
-#+begin_src clojure
+#+begin_src clojure +n 1
   (def input (slurp "inputs/2"))
   (p1 input)
 #+end_src
@@ -232,7 +234,7 @@ Now, the same rules apply as before, except if removing a single level from an u
 #+end_quote
 First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][e2dcab2f0de76c21477c5e871e029f0282c8fabc]]. It is much more efficient than the current solution, but much more convoluted and ugly to read. Right now, I just remove each level one by one and check if the record is safe then.
 
-#+begin_src clojure
+#+begin_src clojure +n 1
   (defn drop-nth [coll n]
     (keep-indexed #(if (not= %1 n) %2) coll))
 
@@ -251,7 +253,7 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 #+RESULTS:
 : 4
 
-#+begin_src clojure
+#+begin_src clojure +n 1
   (p2 input)
 #+end_src
 
@@ -259,10 +261,11 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 : 311
 
 *** Benchmark results
-The old solution took on average =3.8= milliseconds to execute ~(p2 input)~, and the new solution about =6.0=. This is worth it, imo, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
+The [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][old solution]] took on average =3.8= milliseconds to execute ~(p2 input)~, and the new solution about =6.0=. This is worth it, imo, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
+#+LATEX: \clearpage
 * Day 3
 :PROPERTIES:
-:header-args: :tangle day3.clj :exports both
+:header-args: :tangle src/day3.clj :exports both
 :header-args:clojure: :session *clojure-3*
 :END:
 ** Part 1
@@ -272,9 +275,8 @@ xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))
 #+end_example
 
 The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=, and in that case multiply the two numbers together. This is straightforward, I'm not really going to create any helper functions: parse with regex, convert to int, multiply and sum.
-#+begin_src clojure :results silent
-  (ns aoc.3
-    (:require [clojure.string :as str]))
+#+begin_src clojure -n -r :results silent
+  (ns aoc.3)
 
   (defn p1 [input]
     (let [matches (re-seq #"mul\((\d+),(\d+)\)" input)]
@@ -284,7 +286,7 @@ The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=,
            (reduce +))))
 #+end_src
 
-#+begin_src clojure
+#+begin_src clojure +n 1
   (let [input (slurp "inputs/3")]
     (p1 input))
 #+end_src
@@ -298,15 +300,16 @@ We get a new example string for Part Two:
 xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))
 #+end_example
 
-This contains the substrings =don't()= and =do()=, which disable and enable =mul()= instructions. I can do fancy clojure things, but Emacs is way too good for this, so let's do it quickly in Elisp. The goal is to simply remove everything from the input file thats in between a =don't()= and a =do()= instruction, and then call =(p1)= on this input.
+This contains the substrings =don't()= and =do()=, which disable and enable =mul()= instructions. I can do fancy clojure things, but Emacs is way too good for this, so let's do it quickly in Elisp. We want to remove everything from the input file thats in between a =don't()= and a =do()= instruction, and then call =(p1)= on this input.
 There are three slightly tricky things about this:
 - The input file has some newlines, and in some cases a =do()= instruction is on a later line
   than the previous =don't()= instruction.
 - You need to match non-greedy in between a =don't()= and a =do()=.
 - If you call =(replace-regexp)= with just the regex and replacement string, it will move
   point to the last match. This is easily fixed by adding the fourth and fifth arguments to
-  =replace-regexp=: =START= and =END=
+  =replace-regexp=: =START= and =END=.
 #+begin_src elisp :results none
+  ;; elisp
   (with-temp-buffer
     (insert-file-contents "inputs/3")
     (replace-regexp "\n" "" nil (point-min) (point-max))
@@ -314,7 +317,8 @@ There are three slightly tricky things about this:
     (write-region (point-min) (point-max) "inputs/3-enabled"))
 #+end_src
 
-#+begin_src clojure
+#+begin_src clojure +n 1
+  ;; back to clojure
   (let [fixed-input (slurp "inputs/3-enabled")]
     (p1 fixed-input))
 #+end_src
