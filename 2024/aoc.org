@@ -1,21 +1,22 @@
 #+TITLE: Advent of Code 2024
+#+SUBTITLE: Literate Clojure solutions to programming puzzles.
 #+AUTHOR: Rens Oliemans
 #+DESCRIPTION: My Advent of Code solutions for 2024
-#+STARTUP: overview
 #+LATEX_CLASS_OPTIONS: [a4paper,11pt]
 
 Finding the Chief Historian! This program contains my [[https://adventofcode.com/][Advent of Code]] solutions for 2024, which you can find on my [[https://sr.ht/~rensoliemans/AoC/][sourcehut]] and [[https://github.com/RensOliemans/AoC/][GitHub]]. I believe GitHub doesn't show the results of code blocks, which means that viewing it there might leave you a bit confused.
 
-In general, I've added line numbers to code blocks when that code block is part of the solution file. In some cases, I've added code to explain, clarify, justify or otherify something, and these lines aren't necessary to the final solution and thus aren't numbered.
+In general, I've added line numbers to code blocks when that code block is part of the solution file. In some cases, I've added some code that explains, clarifies, justifies or otherifies something. Those lines aren't numbered if they aren't necessary to the final solution.
 #+LATEX: \clearpage
 
 * Utils
 :PROPERTIES:
 :header-args: :tangle util.clj
 :header-args:clojure: :session *clojure-util* :results silent
+:UNNUMBERED: t
 :END:
 
-I have some common functions in =aoc.util=, mostly related to parsing the input. The input always comes in a file but also usually has an example input. The former is a file (which we read as a string with =slurp= and the latter is just the string itself. Therefore it's easiest to let the days itself take care of reading the file (since they also have the example input), and just operate on strings.
+I define some common functions in =aoc.util=, mostly related to parsing the input. The input always comes in a file but also usually has an example input. The former is a file (which we read as a string with =slurp= and the latter is just a string in the same format. Therefore it's easiest to let the days itself take care of reading the file (since they also have the example input), and just operate on strings here.
 
 #+begin_src clojure -n -r
   (ns aoc.util
@@ -64,7 +65,7 @@ Here, we want the whole file to be represented by a vector, where each element i
            (map #(map read-string %)))))
 #+end_src
 
-This function, outputted on the example table seen above, will return the following:
+This function, run on the example table seen above, will return the following:
 #+header: :var example=util-testtable
 #+begin_src clojure :results value replace :tangle no :exports both
   (num-list-per-line example)
@@ -72,6 +73,8 @@ This function, outputted on the example table seen above, will return the follow
 
 #+RESULTS:
 : ((7 6 4 2 1) (1 2 7 8 9) (9 7 6 2 1) (1 3 2 4 5) (8 6 4 4 1) (1 3 6 7 9))
+
+#+LATEX: \clearpage
 
 * Day 1
 :PROPERTIES:
@@ -98,8 +101,6 @@ To find the total distance between the left list and the right list, add up the 
 For the example above, the correct answer is *11*.
 
 My strategy is: convert the input to pairs of numbers ([[num-list-per-line][=aoc.util/num-list-per-line=]] takes care of this), transpose them (so we have two lists), sort them, transpose them again (pairs), and take the difference and sum it.
-
-I'm going to transpose these lists, sort them, transpose them again, take the difference, and sum it.
 Makes sense? We need the two tiny helper functions =sum= and =transpose=:
 #+begin_src clojure -n -r :results silent
   (ns aoc.1)
@@ -258,8 +259,6 @@ Now just use that to determine whether a record is safe. Recall that the testinp
 #+RESULTS:
 : 242
 
-😎
-
 ** Part 2
 #+begin_quote
 Now, the same rules apply as before, except if removing a single level from an unsafe report would make it safe, the report instead counts as safe.
@@ -342,8 +341,9 @@ There are three slightly tricky things about this:
 - If you call =(replace-regexp)= with just the regex and replacement string, it will move
   point to the last match. This is easily fixed by adding the fourth and fifth arguments to
   =replace-regexp=: =START= and =END=.
+
+So, here's some elisp code that does that.
 #+begin_src elisp :results none
-  ;; elisp
   (with-temp-buffer
     (insert-file-contents "inputs/3")
     (replace-regexp "\n" "" nil (point-min) (point-max))
@@ -351,11 +351,13 @@ There are three slightly tricky things about this:
     (write-region (point-min) (point-max) "inputs/3-enabled"))
 #+end_src
 
+And back to clojure for the now trivial second part.
 #+begin_src clojure +n 1
-  ;; back to clojure
   (let [fixed-input (slurp "inputs/3-enabled")]
     (p1 fixed-input))
 #+end_src
 
 #+RESULTS:
 : 100189366
+
+#+LATEX: \clearpage
