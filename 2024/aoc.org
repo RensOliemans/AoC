@@ -361,3 +361,168 @@ And back to clojure for the now trivial second part.
 : 100189366
 
 #+LATEX: \clearpage
+* Day 4
+:PROPERTIES:
+:header-args: :tangle src/day4.clj :exports both
+:header-args:clojure: :session *clojure-4*
+:END:
+
+** Part 1
+We need to find all instances of =XMAS=, appearing in a text like below, either horizontally, vertically, or diagonally, including written backwards. In the text below, =XMAS= occurs *18* times.
+
+#+NAME: testinput4
+#+begin_example
+MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX
+#+end_example
+
+My idea is to search on the letter =X= and use each =X= as a starting point, where we count =XMAS= occurences in each of the 8 different directions. Let's create a function =count-xmases-at= that counts the number of =XMAS=-es starting from a location. Then simply call that for each =X= found in the grid and sum.
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.4)
+#+end_src
+
+#+begin_src clojure +n 1 :var example=testinput4 :results silent
+  (defn p1 [input]
+    (let [lines (aoc.util/string-as-lines input)
+          xs (char-locations lines \X)]
+      (->> xs
+       (map #(count-xmases-at lines % "XMAS" directions))
+       (reduce +))))
+
+  (defn count-xmases-at [grid start text directions]
+    (count (filter #(is-xmas? grid start % text) directions)))
+#+end_src
+
+Well that's the outer logic of the program, but we've used two helper functions that we haven't yet defined:
+- =char-locations= :: Returning all the locations of given character in the grid;
+- =is-xmas?= :: A function that takes the =grid=, a =start= coordinate, a given =text= to
+  match (="XMAS"= for us) and a =direction=. It returns =true= if =text= occurs in the =grid=
+  from =start= in the given =direction=.
+
+Since we're working in the grid, let's make =char-locations= return a 2d vector like =[0 0]= to denote the coordinates in the grid. While we're at it, let's define those directions like so:
+#+begin_src clojure +n 1 :results silent
+  (def directions
+    [[-1  0]   ; Up
+     [ 1  0]   ; Down
+     [ 0 -1]   ; Left
+     [ 0  1]   ; Right
+     [-1 -1]   ; NW
+     [-1  1]   ; NR
+     [ 1 -1]   ; SW
+     [ 1  1]]) ; SE
+#+end_src
+Which is a nice format to have, because you can then do something like this:
+#+begin_src clojure :tangle no
+  (defn move [start direction]
+    (let [[x y] start
+          [x' y'] direction]
+      [(+ x x') (+ y y')]))
+
+  (let [start [4 5]
+        direction [-1 0]] ;; up
+    (move start direction))
+#+end_src
+
+#+RESULTS:
+: [3 5]
+
+Which is really nice! So, let's define the final functions necessary for Part One:
+#+begin_src clojure +n 1 :results silent
+  (defn char-locations [grid x]
+    (mapcat
+     (fn [row string]
+       (keep-indexed (fn [col char] (when (= char x) [row col]))
+                     string))
+     (range)
+     grid))
+
+  (defn is-xmas? "Does the grid `grid` contain the string `text`,
+   starting at `start` and going in `direction`?"
+    [grid start direction text]
+    (let [[x y] start
+          [x' y'] direction]
+      (loop [row x
+             col y
+             chars (seq text)]
+        (if (empty? chars)
+          true
+          (if (or (neg? row) (neg? col)
+                  (>= row (count grid)) (>= col (count (nth grid row)))
+                  (not= (get-in grid [row col]) (first chars)))
+            false
+            (recur (+ row x')
+                   (+ col y')
+                   (rest chars)))))))
+#+end_src
+
+Aaaand, run:
+#+begin_src clojure +n 1
+  (assert (= (p1 example)
+             18))
+
+  (def input (slurp "inputs/4"))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 2447
+
+** Part 2
+Ah, it seems the Elf thinks we're idiots because they use letters more literally. We don't need to find the string =XMAS=, we need to find the string =MAS= in an X, like so!
+#+begin_example
+M.S
+.A.
+M.S
+#+end_example
+
+We could have reused the functionality above to search for =MAS=-es, and then only count a =MAS= that has a nice diagonal partner sharing the =A=. However, I found that a bit tricky to reason about, so I've opted to search for all of the =A=-s in the text, and finding =MAS= strings diagonally from that =A=. If there are exactly two =MAS=-es, we now that we got an =X-MAS=. Again, let's first create the outer shell of the program:
+
+#+begin_src clojure +n 1 :results silent
+  (defn p2 [input]
+    (let [lines (aoc.util/string-as-lines input)
+          as (char-locations lines \A)]
+      (->> as
+           (map #(count-mases-at lines % diagonal-directions))
+           (filter #(= % 2))
+           (count))))
+
+  (defn count-mases-at [lines start directions]
+    (count (filter #(is-mas? lines start %) directions)))
+#+end_src
+
+Note that we're only counting *X*-=MAS=-es, so only use diagonals:
+#+begin_src clojure +n 1 :results silent
+  (def diagonal-directions
+    [[-1 -1]   ; NW
+     [-1  1]   ; NE
+     [ 1 -1]   ; SW
+     [ 1  1]]) ; SE
+#+end_src
+
+This only leaves us =is-mas?=, which is pretty trivial. Since every direction is passed, we can just look for the ordered =MAS= string.
+#+begin_src clojure +n 1 :results silent
+  (defn is-mas? [lines start direction]
+    (let [[x y] start
+          [x' y'] direction]
+      (and (= \M (get-in lines [(+ x x') (+ y y')]))
+           (= \S (get-in lines [(- x x') (- y y')])))))
+#+end_src
+
+#+begin_src clojure +n 1
+  (assert (= 9 (p2 example)))
+  (p2 input)
+#+end_src
+
+#+RESULTS:
+: 1868
+
+#+LATEX: \clearpage
