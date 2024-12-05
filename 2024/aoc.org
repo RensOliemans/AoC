@@ -383,7 +383,7 @@ MAMMMXMMMM
 MXMXAXMASX
 #+end_example
 
-My idea is to search on the letter =X= and use each =X= as a starting point, where we count =XMAS= occurences in each of the 8 different directions. Let's create a function =count-xmases-at= that counts the number of =XMAS=-es starting from a location. Then simply call that for each =X= found in the grid and sum.
+My idea is to search on the letter =X= and use each =X= as a starting point, where we count =XMAS= occurrences in each of the 8 different directions. Let's create a function =count-xmases-at= that counts the number of =XMAS=-es starting from a location. Then simply call that for each =X= found in the grid and sum.
 
 We're going to need to define two helper functions:
 - =char-locations= :: Returning all the locations of given character in the grid;
@@ -515,5 +515,187 @@ And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
 
 #+RESULTS:
 : 1868
+
+#+LATEX: \clearpage
+* Day 5
+:PROPERTIES:
+:header-args: :tangle src/day5.clj :exports both
+:header-args:clojure: :session *clojure-5*
+:END:
+
+** Part 1
+Graphs! We get an input file that looks like this:
+#+name: testinput5
+#+begin_example
+47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47
+#+end_example
+
+The first part contains required orderings, where =29|13= means that =29= should always come before =13=. The second part contains "updates" that might or might not be correctly sorted. In Part One, we need to take the correctly sorted updates, take the middle number, and sum those. I wonder what the second part will be? Actually, I don't wonder, I'm virtually certain of it so I'm just going to sort them already. If the update is equal to the sorted input, it's sorted and we can solve Part One.
+
+I already alluded to graphs, that's because you can think of this as a +DAG+ Directed Graph. In the case before, =29|13= will lead to a vertex from =29= to =13=. My "graph" will basically be a list of dependencies, but I'll call it a graph because that's cool and it sort of is one. Before we get into the weeds, let's zoom out and think of what we need: the sum of the middle numbers of the sorted updates.
+
+First look at the easy functions, leaving =sort= and =build-dependency-graph= empty for the time being:
+
+#+begin_src clojure -n -r :results silent :var example=testinput5
+  (ns aoc.5
+    (:require [clojure.string :as str]))
+
+  (defn sort [dependency-graph update])
+  (defn build-dependency-graph [orderings])
+
+  (defn sorted? [dependency-graph update]
+    (= update (sort dependency-graph update)))
+
+  (defn middle-num
+    "Finds the middle string in a list of string, and parses it to a
+    number. Assumes the length of the list list is odd."
+    [update]
+    (read-string (nth update (/ (count update) 2))))
+#+end_src
+Now we can write =p1=. Since I expect to need the orderings, updates and dependency-graph, I'll create a small function =parse-input= that extracts these from the puzzle input.
+
+#+begin_src clojure +n 1 :results silent
+  (defn parse-input
+    "Parses an input string and returns three useful objects.
+    The first obj is a list of orderings, strings of type \"A|B\".
+    The second obj is a list of updates, each one a list of strings.
+    The third obj is a dependency graph, a map."
+    [input]
+    (let [[orderings updates] (str/split input #"\n\n")
+          orderings (str/split orderings #"\n")
+          updates (str/split updates #"\n")
+          updates (map #(str/split % #",") updates)
+          dependency-graph (build-dependency-graph orderings)]
+      [orderings updates dependency-graph]))
+
+  (defn p1 [input]
+    (let [[orderings updates dep-graph] (parse-input input)
+          sorted? (partial sorted? dep-graph)]
+      (->> updates
+           (filter sorted?)
+           (map middle-num)
+           (reduce +))))
+#+end_src
+
+Very reasonable, but we haven't yet filled in =build-dependency-graph= and =sort=. =build-dependency-graph= should return a map of the following form:
+#+begin_example
+{"75" ["97"], "13" ["97" "61" "29" "47" "75" "53"], ...}
+#+end_example
+
+To do so, I'll first create a hash-map of the following form:
+#+begin_example
+{"75" ["97"], "13" ["97"], "13" ["61"], ...}
+#+end_example
+And then merge identical keys with [[https://clojuredocs.org/clojure.core/merge-with][=merge-with=]] and [[https://clojuredocs.org/clojure.core/into][=into=]], creating our desired dependency graph.
+
+#+begin_src clojure +n 1 :results silent
+  (defn build-dependency-graph
+    [orderings]
+    (let [order-pairs (->> orderings
+                           (map #(str/split % #"\|"))
+                           (map #(hash-map (second %), [(first %)])))]
+      (apply (partial merge-with into) order-pairs)))
+#+end_src
+
+Let's test it out on the example input. Verifying that it's correct is left as an exercise for the reader.
+#+begin_src clojure :results output :tangle no :var example=testinput5
+  (let [[orderings _ _] (parse-input example)
+        dependency-graph (build-dependency-graph orderings)]
+    (clojure.pprint/pprint dependency-graph))
+#+end_src
+
+#+RESULTS:
+: {"61" ["97" "47" "75"],
+:  "47" ["97" "75"],
+:  "53" ["47" "75" "61" "97"],
+:  "13" ["97" "61" "29" "47" "75" "53"],
+:  "75" ["97"],
+:  "29" ["75" "97" "53" "61" "47"]}
+
+And now, ladies and gentleman, the moment you've all been waiting for, =sort=! We need to sort an =update= based on a =dependency-graph=. =sort= does a couple of things:
+1. Create =graph=: This is a subset of =dep-graph=, /limited to the items in update/. It
+   starts with an empty map ={}=, and then for each =item= in =update=, gets the elements in
+   the =dependency-graph= that depend on =item=. =graph= ends up as a map with key a number,
+   and value a set of the dependencies.
+
+   Limiting the dependency graph to be relevant only to the current =update= gives us a
+   tremendous advantage: we can sort the items based on the number of dependencies each item
+   has.
+2. Sort the items in =update= by their amount of dependencies.
+
+#+begin_src clojure +n 1 :results silent
+  (defn sort
+    "Sort a list of strings based on a dependency map.
+     The map defines which elements should come after others."
+    [dep-graph update]
+    (let [graph (reduce (fn [acc item]
+                          (assoc acc item 
+                                 (set (get dep-graph item []))))
+                        {} update)]
+      (vec (sort-by (fn [item]
+                      (let [deps (get dep-graph item [])]
+                        (count (filter #(contains? (set update) %) deps))))
+                    update))))
+#+end_src
+
+Now we got everything, ain't we?
+#+begin_src clojure +n 1 :var example=testinput5
+  (assert (= 143 (p1 example)))
+  (def input (slurp "inputs/5"))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 4637
+
+yes
+** Part 2
+Surprise surprise, we need to sort the incorrect updates; then take the sum of the middle number (of only the /incorrect/ updates!). Our prescience is immeasurable.
+#+begin_src clojure +n 1 :results silent
+  (defn p2 [input]
+    (let [[orderings updates deps] (parse-input input)
+          is-sorted? (partial sorted? deps)
+          sort (partial sort deps)]
+      (->> updates
+           (filter #(not (is-sorted? %)))
+           (map sort)
+           (map middle-num)
+           (reduce +))))
+#+end_src
+
+#+begin_src clojure +n 1 :var example=testinput5
+  (assert (= 123 (p2 example)))
+  (p2 input)
+#+end_src
+
+#+RESULTS:
+: 6370
 
 #+LATEX: \clearpage
