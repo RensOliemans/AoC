@@ -577,7 +577,7 @@ First look at the easy functions, leaving =sort= and =build-dependency-graph= em
     [update]
     (read-string (nth update (/ (count update) 2))))
 #+end_src
-Now we can write =p1=. Since I expect to need the orderings, updates and dependency-graph, I'll create a small function =parse-input= that extracts these from the puzzle input.
+Now we can write =p1=. Since I expect to need the orderings, updates and dependency-graph later as well, I'll create a small function =parse-input= that extracts these from the puzzle input.
 
 #+begin_src clojure +n 1 :results silent
   (defn parse-input
@@ -602,16 +602,16 @@ Now we can write =p1=. Since I expect to need the orderings, updates and depende
            (reduce +))))
 #+end_src
 
-Very reasonable, but we haven't yet filled in =build-dependency-graph= and =sort=. =build-dependency-graph= should return a map of the following form:
+Hmm, yes, extremely reasonable, but we haven't yet filled in =build-dependency-graph= and =sort=. =build-dependency-graph= should take as input the =orderings= (a list of strings from the input, separated by =|=), and return a map of the following form:
 #+begin_example
-{"75" ["97"], "13" ["97" "61" "29" "47" "75" "53"], ...}
+{"75" ["97"], "13" ["97" "61" "29" "47" "75" "53"], ...}.
 #+end_example
 
 To do so, I'll first create a hash-map of the following form:
 #+begin_example
-{"75" ["97"], "13" ["97"], "13" ["61"], ...}
+{"75" ["97"], "13" ["97"], "13" ["61"], ...},
 #+end_example
-And then merge identical keys with [[https://clojuredocs.org/clojure.core/merge-with][=merge-with=]] and [[https://clojuredocs.org/clojure.core/into][=into=]], creating our desired dependency graph.
+and then merge identical keys with [[https://clojuredocs.org/clojure.core/merge-with][=merge-with=]] and [[https://clojuredocs.org/clojure.core/into][=into=]], creating our desired dependency graph.
 
 #+begin_src clojure +n 1 :results silent
   (defn build-dependency-graph
@@ -622,7 +622,7 @@ And then merge identical keys with [[https://clojuredocs.org/clojure.core/merge-
       (apply (partial merge-with into) order-pairs)))
 #+end_src
 
-Let's test it out on the example input. Verifying that it's correct is left as an exercise for the reader.
+Verifying that this next result is correct is left as an exercise for the reader, but let's test it out on the example input:
 #+begin_src clojure :results output :tangle no :var example=testinput5
   (let [[orderings _ _] (parse-input example)
         dependency-graph (build-dependency-graph orderings)]
@@ -637,13 +637,13 @@ Let's test it out on the example input. Verifying that it's correct is left as a
 :  "75" ["97"],
 :  "29" ["75" "97" "53" "61" "47"]}
 
-And now, ladies and gentleman, the moment you've all been waiting for, =sort=! We need to sort an =update= based on a =dependency-graph=. =sort= does a couple of things:
-1. Create =graph=: This is a subset of =dep-graph=, /limited to the items in update/. It
-   starts with an empty map ={}=, and then for each =item= in =update=, gets the elements in
-   the =dependency-graph= that depend on =item=. =graph= ends up as a map with key a number,
-   and value a set of the dependencies.
+And now, ladies and gentleman, the moment you've all been waiting for, =sort=! We need to sort an =update= based on a =dependency-graph=. You can see it below, but how it works:
+1. It creates a =graph=: a subset of =dep-graph=, /limited to the items local to the current/
+   =update=. It starts with an empty map ={}=, and then for each =item= in =update=, adds the
+   elements in the =dependency-graph= that depend on =item=. =graph= ends up as a map with key
+   a number, and value a set of the dependencies.
 
-   Limiting the dependency graph to be relevant only to the current =update= gives us a
+   Limiting the dependency graph to be local only to the current =update= gives us a
    tremendous advantage: we can sort the items based on the number of dependencies each item
    has.
 2. Sort the items in =update= by their amount of dependencies.
@@ -656,10 +656,11 @@ And now, ladies and gentleman, the moment you've all been waiting for, =sort=! W
     (let [graph (reduce (fn [acc item]
                           (assoc acc item 
                                  (set (get dep-graph item []))))
-                        {} update)]
+                        {} update)
+          local-deps (fn [deps] (filter #(contains? (set update) %) deps))]
       (vec (sort-by (fn [item]
                       (let [deps (get dep-graph item [])]
-                        (count (filter #(contains? (set update) %) deps))))
+                        (count (local-deps deps))))
                     update))))
 #+end_src
 
@@ -675,7 +676,7 @@ Now we got everything, ain't we?
 
 yes
 ** Part 2
-Surprise surprise, we need to sort the incorrect updates; then take the sum of the middle number (of only the /incorrect/ updates!). Our prescience is immeasurable.
+Surprise surprise, we need to sort the incorrect updates! We need to take the sum of the middle numbers of only the /incorrect/ updates. Our prescience is immeasurable.
 #+begin_src clojure +n 1 :results silent
   (defn p2 [input]
     (let [[orderings updates deps] (parse-input input)
