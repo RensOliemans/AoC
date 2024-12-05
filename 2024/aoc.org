@@ -78,7 +78,7 @@ This function, run on the example table seen above, will return the following:
 
 * Day 1
 :PROPERTIES:
-:header-args: :tangle src/day1.clj :exports both
+:header-args: :tangle src/day1.clj :exports both :results pp
 :header-args:clojure: :session *clojure-1* :var testinput=testinput1
 :END:
 
@@ -116,7 +116,7 @@ Makes sense? We need the two tiny helper functions =sum= and =transpose=:
 
 With the final function being now quite easy to follow if you keep my strategy above in mind.
 Recall that the correct answer for the testinput was 11.
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :results pp
   (defn p1 [input]
     (let [input (aoc.util/num-list-per-line input)]
       (->> input
@@ -131,17 +131,19 @@ Recall that the correct answer for the testinput was 11.
 
 #+RESULTS:
 : 11
+: 
 
 It works for the testinput, fantastic. Now let's open the file and run it on the input.
 The input file for day 1 can be found in the file =inputs/1=.
 
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :results pp
   (def input (slurp "inputs/1"))
   (p1 input)
 #+end_src
 
 #+RESULTS:
 : 2057374
+: 
 
 Hurrah! We get a *Gold Star*!
 
@@ -162,6 +164,7 @@ Let's use the function =frequencies=!
 
 #+RESULTS:
 : {4 1, 3 3, 5 1, 9 1}
+: 
 
 Now, we can iterate over the first list (which we get by ~(transpose (numbers input))~), multiply the element itself by the count in =frequencies=, and sum the result.
 
@@ -180,11 +183,13 @@ Now, we can iterate over the first list (which we get by ~(transpose (numbers in
 
 #+RESULTS:
 : 23177084
+: 
+
 #+LATEX: \clearpage
 
 * Day 2
 :PROPERTIES:
-:header-args: :tangle src/day2.clj :exports both :var testinput=testinput2
+:header-args: :tangle src/day2.clj :exports both :var testinput=testinput2 :results pp
 :header-args:clojure: :session *clojure-2*
 :END:
 
@@ -231,6 +236,7 @@ test it out:
 
 #+RESULTS:
 : [2 3 1 2]
+: 
 
 Now just use that to determine whether a record is safe. Recall that the testinput had *2* safe records.
 #+begin_src clojure +n 1
@@ -249,6 +255,7 @@ Now just use that to determine whether a record is safe. Recall that the testinp
 
 #+RESULTS:
 : 2
+: 
 
 #+begin_src clojure +n 1
   (def input (slurp "inputs/2"))
@@ -257,6 +264,7 @@ Now just use that to determine whether a record is safe. Recall that the testinp
 
 #+RESULTS:
 : 242
+: 
 
 ** Part 2
 #+begin_quote
@@ -282,6 +290,7 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 
 #+RESULTS:
 : 4
+: 
 
 #+begin_src clojure +n 1
   (p2 input)
@@ -289,13 +298,14 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 
 #+RESULTS:
 : 311
+: 
 
 *** Benchmark results
 The [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][old solution]] took on average =3.8= milliseconds to execute ~(p2 input)~, and the new solution about =6.0=. This is worth it, IMO, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
 #+LATEX: \clearpage
 * Day 3
 :PROPERTIES:
-:header-args: :tangle src/day3.clj :exports both
+:header-args: :tangle src/day3.clj :exports both :results pp
 :header-args:clojure: :session *clojure-3*
 :END:
 ** Part 1
@@ -325,6 +335,7 @@ The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=,
 
 #+RESULTS:
 : 155955228
+: 
 
 ** Part 2
 We get a new example string for Part Two:
@@ -358,11 +369,12 @@ And back to clojure for the now trivial second part.
 
 #+RESULTS:
 : 100189366
+: 
 
 #+LATEX: \clearpage
 * Day 4
 :PROPERTIES:
-:header-args: :tangle src/day4.clj :exports both
+:header-args: :tangle src/day4.clj :exports both :results pp
 :header-args:clojure: :session *clojure-4*
 :END:
 
@@ -413,11 +425,12 @@ Which is a nice format to have, because you can then do something like this:
 
   (let [start [4 5]
         direction [-1 0]] ;; up
-    (println (move start direction)))
+    (move start direction))
 #+end_src
 
 #+RESULTS:
 : [3 5]
+: 
 
 Which is really nice! So, let's define the final functions necessary for Part One:
 #+begin_src clojure +n 1 :results silent
@@ -465,6 +478,7 @@ Now we can tie everything together. =is-xmas?= returns true if the grid contains
 
 #+RESULTS:
 : 2447
+: 
 
 ** Part 2
 Ah, it seems the Elf thinks we're idiots because they use letters more literally. We don't need to find the string =XMAS=, we need to find the string =MAS= in an X, like so!
@@ -513,11 +527,12 @@ And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
 
 #+RESULTS:
 : 1868
+: 
 
 #+LATEX: \clearpage
 * Day 5
 :PROPERTIES:
-:header-args: :tangle src/day5.clj :exports both
+:header-args: :tangle src/day5.clj :exports both :results pp
 :header-args:clojure: :session *clojure-5*
 :END:
 
@@ -623,10 +638,9 @@ and then merge identical keys with [[https://clojuredocs.org/clojure.core/merge-
 #+end_src
 
 Verifying that this next result is correct is left as an exercise for the reader, but let's test it out on the example input:
-#+begin_src clojure :results output :tangle no :var example=testinput5
-  (let [[orderings _ _] (parse-input example)
-        dependency-graph (build-dependency-graph orderings)]
-    (clojure.pprint/pprint dependency-graph))
+#+begin_src clojure :results pp :tangle no :var example=testinput5
+  (let [[orderings _ _] (parse-input example)]
+    (build-dependency-graph orderings))
 #+end_src
 
 #+RESULTS:
@@ -636,6 +650,7 @@ Verifying that this next result is correct is left as an exercise for the reader
 :  "13" ["97" "61" "29" "47" "75" "53"],
 :  "75" ["97"],
 :  "29" ["75" "97" "53" "61" "47"]}
+: 
 
 And now, ladies and gentleman, the moment you've all been waiting for, =sort=! We need to sort an =update= based on a =dependency-graph=. You can see it below, but how it works:
 1. It creates a =graph=: a subset of =dep-graph=, /limited to the items local to the current/
@@ -673,6 +688,7 @@ Now we got everything, ain't we?
 
 #+RESULTS:
 : 4637
+: 
 
 yes
 ** Part 2
@@ -696,5 +712,6 @@ Surprise surprise, we need to sort the incorrect updates! We need to take the su
 
 #+RESULTS:
 : 6370
+: 
 
 #+LATEX: \clearpage
