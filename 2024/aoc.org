@@ -391,7 +391,7 @@ We're going to need to define two helper functions:
   returns =true= if ="XMAS"= occurs in the =grid= from =start= in the given =direction=.
 
 Since we're working in a grid, let's make =char-locations= return a 2d vector like =[0 0]= to denote the coordinates in the grid. While we're at it, let's define those directions like so:
-#+begin_src clojure +n 1 :results silent
+#+begin_src clojure -n -r :results silent
   (ns aoc.4)
 
   (def directions
@@ -432,19 +432,17 @@ Which is really nice! So, let's define the final functions necessary for Part On
   (defn is-xmas? "Does the grid `grid` contain the string \"XMAS\",
    starting at `start` and going in `direction`?"
     [grid start direction]
-    (let [[x y] start
+    (let [[startx starty] start
           [x' y'] direction]
-      (loop [row x
-             col y
+      (loop [x startx
+             y starty
              chars (seq "XMAS")]
         (if (empty? chars)
           true
-          (if (or (neg? row) (neg? col)
-                  (>= row (count grid)) (>= col (count (nth grid row)))
-                  (not= (get-in grid [row col]) (first chars)))
+          (if (not= (get-in grid [x y]) (first chars))
             false
-            (recur (+ row x')
-                   (+ col y')
+            (recur (+ x x')
+                   (+ y y')
                    (rest chars)))))))
 #+end_src
 
@@ -457,8 +455,8 @@ Now we can tie everything together. =is-xmas?= returns true if the grid contains
     (let [grid (aoc.util/string-as-lines input)
           xs (char-locations grid \X)]
       (->> xs
-       (map #(count-xmases-at grid % directions))
-       (reduce +))))
+           (map #(count-xmases-at grid % directions))
+           (reduce +))))
 
   (assert (= 18 (p1 example)))
   (def input (slurp "inputs/4"))
@@ -489,23 +487,23 @@ Instead of =is-xmas?=, we now have =is-mas?=, checking from a =middle= =A= inste
 
 =is-mas?= is now pretty trivial:
 #+begin_src clojure +n 1 :results silent
-  (defn is-mas? [lines middle direction]
+  (defn is-mas? [grid middle direction]
     (let [[x y] middle
           [x' y'] direction]
-      (and (= \M (get-in lines [(+ x x') (+ y y')]))
-           (= \S (get-in lines [(- x x') (- y y')])))))
+      (and (= \M (get-in grid [(+ x x') (+ y y')]))
+           (= \S (get-in grid [(- x x') (- y y')])))))
 #+end_src
 
 And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
 #+begin_src clojure +n 1 :var example=testinput4
-  (defn count-mases-at [lines middle directions]
-    (count (filter #(is-mas? lines middle %) directions)))
+  (defn count-mases-at [grid middle directions]
+    (count (filter #(is-mas? grid middle %) directions)))
 
   (defn p2 [input]
-    (let [lines (aoc.util/string-as-lines input)
-          as (char-locations lines \A)]
+    (let [grid (aoc.util/string-as-lines input)
+          as (char-locations grid \A)]
       (->> as
-           (map #(count-mases-at lines % diagonal-directions))
+           (map #(count-mases-at grid % diagonal-directions))
            (filter #(= % 2))
            (count))))
 
