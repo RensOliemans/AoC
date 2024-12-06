@@ -715,3 +715,172 @@ Surprise surprise, we need to sort the incorrect updates! We need to take the su
 : 
 
 #+LATEX: \clearpage
+* Day 6
+:PROPERTIES:
+:header-args: :tangle src/day6.clj :exports both
+:header-args:clojure: :session *clojure-6* :results silent
+:END:
+
+** Part 1
+
+We get a grid again, now representing a map. It looks like this:
+#+name: testinput6
+#+begin_example
+....#.....
+.........#
+..........
+..#.......
+.......#..
+..........
+.#..^.....
+........#.
+#.........
+......#...
+#+end_example
+
+The =^= represents the starting location of our guard, and they start by going /up/. A =#= is an obstacle, and will force the guard to move direction, turning 90° clockwise. Our goal is to find out how many distinct places the guard has entered by the time he leaves the puzzle.
+
+If you replace entered places by =X=, you'd get the following output, with *41* distinct places:
+#+begin_example
+....#.....
+....XXXXX#
+....X...X.
+..#.X...X.
+..XXXXX#X.
+..X.X.X.X.
+.#XXXXXXX.
+.XXXXXXX#.
+#XXXXXXX..
+......#X..
+#+end_example
+
+Turning clockwise means that we have only four directions:
+#+begin_src clojure -n -r
+  (ns aoc.6
+    (:require [clojure.string :as str]))
+#+end_src
+
+#+begin_src clojure +n 1
+  (def directions
+    [[-1  0]   ; Up
+     [ 0  1]   ; Right
+     [ 1  0]   ; Down
+     [ 0 -1]]) ; Left
+#+end_src
+
+Our function will simply compute the route the guard takes as a vector of coordinates, and count the distinct elements of said vector:
+#+begin_src clojure +n 1
+  (defn guard-route
+    "Takes a `grid` as input returns a vector of 2d coordinates: the route
+    of the guard, starting at `start` and turning clockwise at \"#\"
+    characters. "
+    [grid start])
+
+  (defn p1 [input]
+    (let [grid (aoc.util/string-as-lines input)
+          start (first (aoc.4/char-locations grid \^))
+          route (guard-route grid start)]
+      (count (distinct route))))
+#+end_src
+
+As for =guard-route=, we loop through the grid, where each iteration of the loop is a move: go to the next location given some direction, or change direction, building a =route= along the way. We replace the =^= character with a =.= after determining the start so that we only have two cases to deal with, =.= and =#=. We can reuse the =char-locations= formula from [[*Day 4][Day 4]] (which gives us a list of coordinates where a certain character can be found) to find our starting location.
+#+begin_src clojure +n 1
+  (defn replace-char
+    [grid [x y] new-char]
+    (update grid x
+            #(str (subs % 0 y)
+                  new-char
+                  (subs % (inc y)))))
+
+  (defn guard-route [grid start]
+    (let [size (count grid)
+          grid (replace-char grid start \.)]
+      (loop [location start
+             directions (cycle directions)
+             route []]
+        (let [[x y] location
+              [x' y'] (first directions)
+              next-location [(+ x x') (+ y y')]
+              next-object (get-in grid next-location)
+              route (conj route location)]
+          (condp = next-object
+            nil route
+            \. (recur next-location
+                      directions
+                      route)
+            \# (recur location
+                      (next directions)
+                      route))))))
+#+end_src
+
+Perhaps this is a little too imperative, but I'm fine with it.
+
+#+begin_src clojure +n 1 :results pp :var example=testinput6
+  (assert (= 41 (p1 example)))
+  (def input (slurp "inputs/6"))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 5208
+: 
+
+** Part 2
+It's of course possible that the guard enters a loop, but fortunately that didn't occur in the input we were given. Part Two is concerned with /creating/ loops by adding obstacles. Specifically, /how many loops can we create by adding just a single obstacle?/
+
+I'm afraid that I'll have to create a very similar function to =guard-route=, except that now we keep track of the places we've been before. If we ever enter the same location while going in the same direction, we know we've entered a loop and can exit immediately. In that case, let's return =true= and name the function =route-has-loop?=. Since we're exiting earlier and I don't want to create cycle-detection, I'm not reusing the function from Part One. In python I'd use a generator, but I haven't figured out =lazy-seq= yet in clojure.
+
+I can't think of a way to do this intelligently, but at least one insight is that you don't have to consider /all/ cases: you only have to add obstacles on parts of the original route; adding them elsewhere will have no effect.
+
+#+begin_src clojure +n 1
+  (defn route-has-loop? [grid start])
+
+  (defn p2 [input]
+    (let [grid (aoc.util/string-as-lines input)
+          start (first (aoc.4/char-locations grid \^))
+          route (disj (set (guard-route grid start)) start)]
+      (->> route
+           (pmap (fn [new-obstacle]
+                  (route-has-loop? (replace-char grid new-obstacle \#) start)))
+           (filter true?)
+           (count))))
+#+end_src
+
+=route-has-loop?= is virtually identical to =guard-route=, except that we keep track of the =visited= set (keeping track of visited =[location direction]= pairs), and that we return =true= or =false= instead of the route.
+
+#+begin_src clojure +n 1
+  (defn route-has-loop? [grid start]
+    (let [size (count grid)
+          grid (replace-char grid start \.)]
+      (loop [location start
+             directions (cycle directions)
+             visited #{}]
+        (let [[x y] location
+              [x' y'] (first directions)
+              next-location [(+ x x') (+ y y')]
+              next-object (get-in grid next-location)
+              pair [next-location [x' y']]]
+          (if (contains? visited pair)
+            true ;; we have a loop!
+            (condp = next-object
+              nil false ;; we exited the puzzle
+              \. (recur next-location
+                        directions
+                        (conj visited pair))
+              \# (recur location
+                        (next directions)
+                        (conj visited pair))))))))
+#+end_src
+
+On my laptop, this takes about 15 seconds to run on a single thread, but by default uses all of the threads (just by changing =map= into =pmap=, how freaking awesome is that!)
+
+#+begin_src clojure +n 1 :results replace pp :var example=testinput6
+  (assert (= 6 (p2 example)))
+  (p2 input)
+#+end_src
+
+#+RESULTS:
+: 1972
+: 
+
+#+LATEX: \clearpage
