@@ -16,7 +16,7 @@ In general, I've added line numbers to code blocks when that code block is part 
 :UNNUMBERED: t
 :END:
 
-I define some common functions in =aoc.util=, mostly related to parsing the input. The input always comes in a file but also usually has an example input. The former is a file (which we read as a string with =slurp= and the latter is just a string in the same format. Therefore it's easiest to let the days itself take care of reading the file (since they also have the example input), and just operate on strings here.
+I define some common functions in =aoc.util=, mostly related to parsing the input. The input always comes in a file but also usually has an example input. The former is a file (which we read as a string with =slurp=) and the latter is just a string in the same format. Therefore it's easiest to let the days itself take care of reading the file (since they also have the example input), and just operate on strings here.
 
 #+begin_src clojure -n -r
   (ns aoc.util
@@ -136,12 +136,12 @@ Recall that the correct answer for the testinput was 11.
 It works for the testinput, fantastic. Now let's open the file and run it on the input.
 The input file for day 1 can be found in the file =inputs/1=.
 
-#+begin_src clojure +n 1 :results pp
+#+begin_src clojure +n 1 :results pp :cache yes
   (def input (slurp "inputs/1"))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[dc6cb8a4929cbd54177e36f822063ad4d1dd298b]:
 : 2057374
 : 
 
@@ -168,7 +168,7 @@ Let's use the function =frequencies=!
 
 Now, we can iterate over the first list (which we get by ~(transpose (numbers input))~), multiply the element itself by the count in =frequencies=, and sum the result.
 
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :cache yes
   (defn p2 [input]
     (let [input (transpose (aoc.util/num-list-per-line input))
           one (first input)
@@ -181,7 +181,7 @@ Now, we can iterate over the first list (which we get by ~(transpose (numbers in
   (p2 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[3352887d7d180d87b1dc656c9410e33f9467491e]:
 : 23177084
 : 
 
@@ -257,12 +257,12 @@ Now just use that to determine whether a record is safe. Recall that the testinp
 : 2
 : 
 
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :cache yes
   (def input (slurp "inputs/2"))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[c04baf284769654869f544f68196e3a886f3be94]:
 : 242
 : 
 
@@ -292,11 +292,11 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
 : 4
 : 
 
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :cache yes
   (p2 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[afc0462f73c61ee1266956dcec879f9cad1c2029]:
 : 311
 : 
 
@@ -328,12 +328,12 @@ The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=,
            (reduce +))))
 #+end_src
 
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :cache yes
   (let [input (slurp "inputs/3")]
     (p1 input))
 #+end_src
 
-#+RESULTS:
+#+RESULTS[a02b1ddc44c13defbcb1e25c2b97ede252f8e3fb]:
 : 155955228
 : 
 
@@ -362,12 +362,12 @@ So, here's some elisp code that does that.
 #+end_src
 
 And back to clojure for the now trivial second part.
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :cache yes
   (let [fixed-input (slurp "inputs/3-enabled")]
     (p1 fixed-input))
 #+end_src
 
-#+RESULTS:
+#+RESULTS[1ba945ef13ca9844840e850811ae2ebd5ba29fd2]:
 : 100189366
 : 
 
@@ -405,7 +405,9 @@ We're going to need to define two helper functions:
 Since we're working in a grid, let's make =char-locations= return a 2d vector like =[0 0]= to denote the coordinates in the grid. While we're at it, let's define those directions like so:
 #+begin_src clojure -n -r :results silent
   (ns aoc.4)
+#+end_src
 
+#+begin_src clojure +n 1 :results silent
   (def directions
     [[-1  0]   ; Up
      [ 1  0]   ; Down
@@ -460,7 +462,7 @@ Which is really nice! So, let's define the final functions necessary for Part On
 #+end_src
 
 Now we can tie everything together. =is-xmas?= returns true if the grid contains the word ="XMAS"= in a given =direction=. After we've found all =X= characters, we can count the amount of =XMAS=-es connected to it by counting all =direction= for which =is-xmas?= returns true.
-#+begin_src clojure +n 1 :var example=testinput4
+#+begin_src clojure +n 1 :var example=testinput4 :cache yes
   (defn count-xmases-at [grid start directions]
     (count (filter #(is-xmas? grid start %) directions)))
 
@@ -476,7 +478,7 @@ Now we can tie everything together. =is-xmas?= returns true if the grid contains
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[c6c29e6af7832c497210844d4425e2348c516c24]:
 : 2447
 : 
 
@@ -509,7 +511,7 @@ Instead of =is-xmas?=, we now have =is-mas?=, checking from a =middle= =A= inste
 #+end_src
 
 And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
-#+begin_src clojure +n 1 :var example=testinput4
+#+begin_src clojure +n 1 :var example=testinput4 :cache yes
   (defn count-mases-at [grid middle directions]
     (count (filter #(is-mas? grid middle %) directions)))
 
@@ -525,7 +527,7 @@ And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
   (p2 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[be8a03919400d057ad5c63dd70f6d911c7fb69c9]:
 : 1868
 : 
 
@@ -680,13 +682,13 @@ And now, ladies and gentleman, the moment you've all been waiting for, =sort=! W
 #+end_src
 
 Now we got everything, ain't we?
-#+begin_src clojure +n 1 :var example=testinput5
+#+begin_src clojure +n 1 :var example=testinput5 :cache yes
   (assert (= 143 (p1 example)))
   (def input (slurp "inputs/5"))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[5f41173096fd7f1dfa91fc34a4321cc47a5507e7]:
 : 4637
 : 
 
@@ -705,12 +707,12 @@ Surprise surprise, we need to sort the incorrect updates! We need to take the su
            (reduce +))))
 #+end_src
 
-#+begin_src clojure +n 1 :var example=testinput5
+#+begin_src clojure +n 1 :var example=testinput5 :cache yes
   (assert (= 123 (p2 example)))
   (p2 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[a11abc211e4442a17d741b2c0049e5f8f4629b5c]:
 : 6370
 : 
 
@@ -756,8 +758,7 @@ If you replace entered places by =X=, you'd get the following output, with *41* 
 
 Turning clockwise means that we have only four directions:
 #+begin_src clojure -n -r
-  (ns aoc.6
-    (:require [clojure.string :as str]))
+  (ns aoc.6)
 #+end_src
 
 #+begin_src clojure +n 1
@@ -815,13 +816,13 @@ As for =guard-route=, we loop through the grid, where each iteration of the loop
 
 Perhaps this is a little too imperative, but I'm fine with it.
 
-#+begin_src clojure +n 1 :results pp :var example=testinput6
+#+begin_src clojure +n 1 :results pp replace :var example=testinput6 :cache yes
   (assert (= 41 (p1 example)))
   (def input (slurp "inputs/6"))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[0bd2fee5c8bf37beaaa8949231dd6252c760c0a4]:
 : 5208
 : 
 
@@ -874,13 +875,125 @@ I can't think of a way to do this intelligently, but at least one insight is tha
 
 On my laptop, this takes about 15 seconds to run on a single thread, but by default uses all of the threads (just by changing =map= into =pmap=, how freaking awesome is that!)
 
-#+begin_src clojure +n 1 :results replace pp :var example=testinput6
+#+begin_src clojure +n 1 :results replace pp :var example=testinput6 :cache yes
   (assert (= 6 (p2 example)))
   (p2 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[0a0ac712951124f841d3db3e8a5f8e909547690b]:
 : 1972
-: 
+:
+
+#+LATEX: \clearpage
+* Day 7
+:PROPERTIES:
+:header-args: :tangle src/day7.clj :exports both
+:header-args:clojure: :session *clojure-7* :results silent
+:END:
+
+** Part 1
+The elephants stole our operators! We had a list of equations, but they stole the operators between the numbers. We get an input where each line represents a single equation, which may be correct. We have to determine whether the equation can be correct, if we limit ourselves to =+= and =*=. In this example:
+
+#+name: testinput7
+#+begin_example
+190: 10 19
+3267: 81 40 27
+83: 17 5
+156: 15 6
+7290: 6 8 6 15
+161011: 16 10 13
+192: 17 8 14
+21037: 9 7 18 13
+292: 11 6 16 20
+#+end_example
+only three of the equations can be made true, and their results sum up to *3749*---that is our goal.
+
+#+begin_src clojure -n -r
+  (ns aoc.7 (:require [clojure.string :as str]))
+#+end_src
+
+Again we get a familiar pattern: =map=, =filter=, =reduce=.
+#+begin_src clojure +n 1
+  (defn is-correct? [equation])
+
+  (defn parse-equations [input]
+    (let [lines (str/split input #"\n")
+          equations (map #(str/split % #": ") lines)]
+      (map (fn [[lhs rhs]]
+             [(read-string lhs) (vec (map read-string (str/split rhs #" ")))])
+           equations)))
+
+  (defn p1 [input]
+    (->> input
+         (parse-equations)
+         (filter is-correct?)
+         (map first)
+         (reduce +)))
+#+end_src
+
+#+begin_src clojure :var example=testinput7 :results replace pp
+  (parse-equations example)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+([190 [10 19]]
+ [3267 [81 40 27]]
+ [83 [17 5]]
+ [156 [15 6]]
+ [7290 [6 8 6 15]]
+ [161011 [16 10 13]]
+ [192 [17 8 14]]
+ [21037 [9 7 18 13]]
+ [292 [11 6 16 20]])
+
+#+end_example
+
+Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 numbers to add or multiply, so 4096 possible operations to check out. I think brute-forcing is pretty viable.
+
+#+begin_src clojure +n 1
+  (defn possible-ops
+    [x y]
+    [(* x y)
+     (+ x y)])
+
+  (defn equation-possibilities
+    [target nums]
+    (->> (range 1 (count nums))
+         (reduce (fn [possible-results idx]
+                   (->> possible-results
+                        (mapcat (fn [result]
+                                  (possible-ops result (nth nums idx))))))
+                 [(first nums)])))
+
+  (defn is-correct? [equation]
+    (let [[result numbers] equation
+          targets (equation-possibilities result numbers)]
+      (some #(= % result) targets)))
+#+end_src
+
+#+begin_src clojure +n 1 :var example=testinput7 :results replace :cache yes
+  (assert (= 3749 (p1 example)))
+  (def input (slurp "inputs/7"))
+  (p1 input)
+#+end_src
+
+#+RESULTS[62162dade15973914f0339e7dff088c8b74f7735]:
+: 12839601725877
+
+** Part 2
+#+begin_src clojure +n 1 :var example=testinput7 :results replace :cache yes
+  (defn possible-ops
+    [x y]
+    [(* x y)
+     (+ x y)
+     (Long/parseLong (str x y))])
+
+  (assert (= 11387 (p1 example)))
+  (p1 input)
+#+end_src
+
+#+RESULTS[1af5c02dc79c689bd1447eefcd583d6fbdd59ecb]:
+: 149956401519484
 
 #+LATEX: \clearpage
