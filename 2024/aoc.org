@@ -1057,24 +1057,185 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
 : 149956401519484
 
 #+LATEX: \clearpage
-* TODO Day 8
+* Day 8
 :PROPERTIES:
 :header-args: :tangle src/day8.clj :exports both
 :header-args:clojure: :session *clojure-8*
 :END:
 
 ** Part 1
-#+begin_src clojure
-  (let [input (slurp "inputs/8")]
-    (p1 input))
+We get a grid that looks more or less like this:
+#+name: testinput8
+#+begin_example
+............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............
+#+end_example
+
+And we need to find the specific /antinode/. An /antinode/ is defined as
+#+begin_quote
+an antinode occurs at any point that is perfectly in line with two antennas of the same frequency - but only when one of the antennas is twice as far away as the other.
+#+end_quote
+
+For the example above, there are *14* unique antinodes within the bounds of the map. The pseudo-function (correct with some good imagination) is:
+#+name: eq-antinode
+#+begin_center
+\begin{equation}
+\text{antinodes}(a_1, a_2) = \text{distance}(a_1, a_2) \pm [a_1, a_2].
+\end{equation}
+#+end_center
+
+You can see the antinodes marked by =#= here:
+#+begin_example
+......#....#
+...#....0...
+....#0....#.
+..#....0....
+....0....#..
+.#....A.....
+...#........
+#......#....
+........A...
+.........A..
+..........#.
+..........#.
+#+end_example
+
+First, we need to identify all frequencies—all characters that aren't =.= or =\n=.  For each frequency, find all pairs of antennas that have said frequencies, and find the antinodes. Put the locations in a set and count it.
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.8
+    (:require [clojure.math.combinatorics :as combo]))
+
+  (defn all-antinodes-for-freq-in-grid [grid freq])
+
+  (defn p1 [input]
+    (let [grid (aoc.util/string-as-lines input)
+          freqs (->> input
+                     set
+                     (remove #{\. \newline}))]
+      (->> freqs
+           (mapcat #(all-antinodes-for-freq-in-grid grid %))
+           distinct
+           count)))
+#+end_src
+
+=all-antinodes-for-freq-in-grid= finds all antinodes that are valid within the grid bounds. For that we need two small helper functions, =all-antinodes-for-freq= (which finds all antinodes, possibly out of bounds), and =in-grid?=, whether a coordinate is in a grid. In turn, =all-antinodes-for-freq= find all antinodes for all pairs, and uses the function =antinodes-for-pair= to find the antinodes for a given pair.
+
+#+begin_src clojure +n 1 :results silent
+  (defn- in-grid? [grid [x y]]
+    (and (< -1 x (count grid))
+         (< -1 y (count (first grid)))))
+
+  (defn antinodes-for-pair [[[ay ax] [by bx]]]
+    (let [dx (abs (- ay by))
+          dx-sign (compare by ay)
+          dy (abs (- ax bx))
+          dy-sign (compare bx ax)]
+      [[(- ay (* dx-sign dx)) (- ax (* dy-sign dy))]
+       [(+ by (* dx-sign dx)) (+ bx (* dy-sign dy))]]))
+#+end_src
+
+Okay that function was a bit ugly, but the weird behaviour with the sign was so that you can simply add the difference to the correct parts and be done with it. You see, if you have two locations =a = [1 8]= and =b = [2 5]=, you can compute the absolute difference (=[1 3]=), but you need to /subtract/ =1= from =ay= (since =a= is above =b=), but /add/ =3= to =ax= (since =a= is to the right of =b=). This is the bit of imagination I requested from you above for [[eq-antinode][Equation 1]]. Anyhow, this sign business takes care of that, such that:
+
+#+begin_src clojure :results pp :tangle no
+  (antinodes-for-pair [[1 8] [2 5]])
 #+end_src
 
 #+RESULTS:
-: class java.lang.NullPointerException
+: [[0 11] [3 2]]
+: 
+
+#+begin_src clojure +n 1 :results silent
+  (defn all-antinodes-for-freq-in-grid [grid freq]
+    (let [antinodes (all-antinodes-for-freq grid freq)]
+      (filter (partial in-grid? grid) antinodes)))
+
+  (defn all-antinodes-for-freq [grid freq]
+    (let [indices (aoc.util/char-locations grid freq)
+          pairs (combo/combinations indices 2)]
+      (mapcat antinodes-for-pair pairs)))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :var example=testinput8
+  (assert (= 14 (p1 example)))
+  (def input (slurp "inputs/8"))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 371
+: 
 
 ** Part 2
+In Part Two we don't just find two antinodes (at equal distance from both points), but instead we find all antinodes that are in line with any given pair. In order to do this, we follow the same structure:
+- find all antinodes
+- filter those outside of the grid
+- count distinct elements
 
-#+LATEX: clearpage
+But now the finding all antinodes is of course slightly different. If we redefine =all-antinodes-for-freq-in-grid= to return the new harmonic antinodes, we can keep =p1= identical.
+
+#+begin_src clojure +n 1 :results silent
+  (defn harmonic-antinodes-for-pair [grid [a b]])
+
+  (defn all-antinodes-for-freq-in-grid [grid freq]
+    (let [indices (aoc.util/char-locations grid freq)
+          pairs (combo/combinations indices 2)]
+      (->> pairs
+           (mapcat #(harmonic-antinodes-for-pair grid %))
+           (filter (partial in-grid? grid)))))
+#+end_src
+
+Alright now =harmonic-antinodes-for-pair= should find /all/ harmonic antinodes for a pair, and we filter the ones that aren't in the grid. However, how should we do this? There's an infinite amount of 'em! There's surely some smart way to compute only the ones that are in the grid, but I'm doing a sort of dumb method:
+- compute the difference between two pairs (for =[[1 8] [2 5]]= that's =[1 -3]=);
+- subtracting that from =a= ~(count grid)~ times.
+- adding that to =a= ~(count grid)~ times.
+
+This way we know for sure that we don't miss anything, but we do know that a lot of what we calculate will fall outside of the grid.
+#+begin_src clojure +n 1 :results silent
+  (defn- dx-dy-pair [[ax ay] [bx by]]
+    (let [[dx dy] [(abs (- ax bx)) (abs (- ay by))]
+          [dx dy] [(* (compare bx ax) dx)
+                   (* (compare by ay) dy)]]
+      [dx dy]))
+
+  (defn harmonic-antinodes-for-pair [grid [a b]]
+    (let [[ax ay] a
+          [bx by] b
+          [dx dy] (dx-dy-pair a b)]
+      (for [n (range (- (count grid)) (count grid))]
+        [(+ ax (* n dx)) (+ ay (* n dy))])))
+#+end_src
+
+Check how it works (and how much wasted work we do) (line goes off page for dramatic effect):
+#+begin_src clojure :tangle no :results verbatim
+  (harmonic-antinodes-for-pair (range 12) [[1 8] [2 5]])
+#+end_src
+
+#+RESULTS:
+: ([-11 44] [-10 41] [-9 38] [-8 35] [-7 32] [-6 29] [-5 26] [-4 23] [-3 20] [-2 17] [-1 14] [0 11] [1 8] [2 5] [3 2] [4 -1] [5 -4] [6 -7] [7 -10] [8 -13] [9 -16] [10 -19] [11 -22] [12 -25])
+
+But, since it's easily fast enough (runs basically instantly), I don't really care. [[*Day 2][Personal growth!]]
+
+#+begin_src clojure +n 1 :results pp
+  (assert (= 34 (p1 example)))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 1229
+: 
+
+#+LATEX: \clearpage
 * TODO Day 9
 :PROPERTIES:
 :header-args: :tangle src/day9.py :exports both
