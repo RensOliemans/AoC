@@ -39,8 +39,8 @@ Often the lines contain numbers:
     `read-string`, so it isn't just limited to numbers, but I've only
     tested numbers."
     [input]
-    (let [lines (string-as-lines input)]
-      (map read-string lines)))
+    (->> (string-as-lines input)
+         (map read-string)))
 #+end_src
 
 or lists of numbers. This was the case in both [[*Day 1][Day 1]] and [[*Day 2][Day 2]], where the input had the following format:
@@ -60,21 +60,29 @@ Here, we want the whole file to be represented by a vector, where each element i
     "Returns a vector of vectors, the outer vector has an element per
     line, the inner has space-separated elements. "
     [input]
-    (let [lines (string-as-lines input)]
-      (->> lines
-           (map #(str/split % #"\s+"))
-           (map #(map read-string %)))))
+    (->> (string-as-lines input)
+         (map #(mapv read-string (str/split % #"\s+")))
+         vec))
 #+end_src
 
+This function, run on the example table seen above, will return the following:
+#+header: :var example=util-testtable
+#+begin_src clojure :results verbatim replace :tangle no :exports both
+  (num-list-per-line example)
+#+end_src
+
+#+RESULTS:
+: [[7 6 4 2 1] [1 2 7 8 9] [9 7 6 2 1] [1 3 2 4 5] [8 6 4 4 1] [1 3 6 7 9]]
+
+Which is fine, but sometimes (see [[*Day 10][Day 10]]) you need to parse numbers without any space in between them. In that case, just map over the characters and call ~(Character/digit c 10)~ on it:
 #+begin_src clojure +n 1
   (defn adjacent-num-list-per-line
-    "Returns a vector of vectors"
+    "Returns a vector of vectors. The outer vector has an element per
+    line, the inner has an element per character, parsed as int"
     [input]
-    (let [lines (string-as-lines input)]
-      (vec 
-       (->> lines
-            (map (fn [line]
-                   (vec (map #(Character/digit % 10) line))))))))
+    (->> (string-as-lines input)
+         (map #(mapv (fn [ch] (Character/digit ch 10)) %))
+         vec))
 #+end_src
 
 #+begin_src clojure :results pp replace :tangle no :var example=util-testtable
@@ -89,15 +97,6 @@ Here, we want the whole file to be represented by a vector, where each element i
 :  [8 -1 6 -1 4 -1 4 -1 1]
 :  [1 -1 3 -1 6 -1 7 -1 9]]
 : 
-
-This function, run on the example table seen above, will return the following:
-#+header: :var example=util-testtable
-#+begin_src clojure :results verbatim :tangle no :exports both
-  (num-list-per-line example)
-#+end_src
-
-#+RESULTS:
-: ((7 6 4 2 1) (1 2 7 8 9) (9 7 6 2 1) (1 3 2 4 5) (8 6 4 4 1) (1 3 6 7 9))
 
 ** Grids
 First, the directions you can move in a grid:
@@ -120,10 +119,8 @@ First, the directions you can move in a grid:
 
 And how you can use them:
 #+begin_src clojure +n 1
-  (defn move [pos dir]
-    (let [[x y] pos
-          [x' y'] dir]
-      [(+ x x') (+ y y')]))
+  (defn move [[x y] [x' y']]
+    [(+ x x') (+ y y')])
 #+end_src
 
 #+begin_src clojure :exports both :tangle no :results pp replace
@@ -137,13 +134,34 @@ And how you can use them:
 And finding characters in a grid:
 #+begin_src clojure +n 1
   (defn char-locations [grid x]
-    (mapcat
-     (fn [row string]
-       (keep-indexed (fn [col char] (when (= char x) [row col]))
-                     string))
-     (range)
-     grid))
+    (mapcat (fn [row string]
+              (keep-indexed (fn [col char] (when (= char x) [row col]))
+                            string))
+            (range)
+            grid))
 #+end_src
+
+For example:
+#+begin_src clojure :exports both :results pp replace :tangle no
+  (def input "MMMSXXMASM
+  MSAMXMSMSA
+  AMXSXMAAMM
+  MSAMASMSMX
+  XMASAMXAMM
+  XXAMMXXAMA
+  SMSMSASXSS
+  SAXAMASAAA
+  MAMMMXMMMM
+  MXMXAXMASX")
+
+  (def grid (string-as-lines input))
+
+  (take 10 (char-locations grid \X))
+#+end_src
+
+#+RESULTS:
+: ([0 4] [0 5] [1 4] [2 2] [2 4] [3 9] [4 0] [4 6] [5 0] [5 1])
+: 
 
 #+LATEX: \clearpage
 
@@ -183,6 +201,7 @@ Makes sense? We need the two tiny helper functions =sum= and =transpose=:
 
   (defn transpose "Transposes a matrix" [m]
     (apply mapv vector m))
+
   (defn p1 [input]
     (let [input (aoc.util/num-list-per-line input)]
       (->> input
@@ -1009,7 +1028,7 @@ Again we get a familiar pattern: =map=, =filter=, =reduce=.
 
 #+end_example
 
-Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 numbers to add or multiply, so 4096 possible operations to check out. I think brute-forcing is pretty viable.
+Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 numbers to add or multiply, so 2048 possible operations to check out. I think brute-forcing is pretty viable.
 
 #+begin_src clojure +n 1
   (defn possible-ops
@@ -1040,8 +1059,10 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
 
 #+RESULTS[d4e6474f0ecd639a6ae9101d43597f5993d33020]:
 : 12839601725877
+:
 
 ** Part 2
+Now this is an elegant Part Two.
 #+begin_src clojure +n 1 :var example=testinput7 :results replace pp :cache yes
   (defn possible-ops
     [x y]
@@ -1055,6 +1076,12 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
 
 #+RESULTS[48d1899cd6a7f4083342061e432bd48bc13e3d46]:
 : 149956401519484
+:
+
+** Optimization
+There is a nice way to optimize this. Since this one actually takes quite long (Part One takes about 200ms, Part Two about 6.2s), I might end up doing this at some time, but the trick is that you don't need to multiply the last two numbers together if the equation target isn't divisible by the last number. That frees up half of the possible combinations, and you can of course do this for the second-to-last number as well, et cetera. It's probably nice to reverse the operation list for this.
+
+For Part Two, you can optimize the =||= operation by skipping it if the target number doesn't have the final number as suffix.
 
 #+LATEX: \clearpage
 * Day 8
@@ -1156,23 +1183,23 @@ Okay that function was a bit ugly, but the weird behaviour with the sign was so 
 : 
 
 #+begin_src clojure +n 1 :results silent
-  (defn all-antinodes-for-freq-in-grid [grid freq]
-    (let [antinodes (all-antinodes-for-freq grid freq)]
-      (filter (partial in-grid? grid) antinodes)))
-
   (defn all-antinodes-for-freq [grid freq]
     (let [indices (aoc.util/char-locations grid freq)
           pairs (combo/combinations indices 2)]
       (mapcat antinodes-for-pair pairs)))
+
+  (defn all-antinodes-for-freq-in-grid [grid freq]
+    (let [antinodes (all-antinodes-for-freq grid freq)]
+      (filter (partial in-grid? grid) antinodes)))
 #+end_src
 
-#+begin_src clojure +n 1 :results pp :var example=testinput8
+#+begin_src clojure +n 1 :results pp :var example=testinput8 :cache yes
   (assert (= 14 (p1 example)))
   (def input (slurp "inputs/8"))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[cbd4c8f8dfc0f1c816079b5a59ee09f322c0b71b]:
 : 371
 : 
 
@@ -1226,12 +1253,12 @@ Check how it works (and how much wasted work we do) (line goes off page for dram
 
 But, since it's easily fast enough (runs basically instantly), I don't really care. [[*Day 2][Personal growth!]]
 
-#+begin_src clojure +n 1 :results pp
+#+begin_src clojure +n 1 :results pp :var example=testinput8 :cache yes
   (assert (= 34 (p1 example)))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[94c52d7d77683a56a9ca48abc343b43f16930af8]:
 : 1229
 : 
 
@@ -1253,7 +1280,7 @@ A /disk map/ is given like below, and we need to rearrange it to remove the empt
 
 The digits alternate between indicating the length of a file, and the length of free space. The final goal is to move the rightmost file blocks to the leftmost empty spaces, until that's no longer possible. It's useful to keep track of the empty spaces and file blocks separately, so we build those two by looping over the file input.
 
-#+begin_src python :results silent
+#+begin_src python -n -r :results silent
   def parse_puzzle(puzzle):
       files = list()
       freespace = list()
@@ -1274,7 +1301,7 @@ We iterate over the input, where for each empty space we find, we move fileblock
   move to next empty space, remove =space= amount of file blocks from end;
 - space size > amount of file blocks :: Move file blocks to empty space, keep pointer at
   current empty space, decrease empty space size, remove file blocks from end.
-#+begin_src python :results silent
+#+begin_src python +n 1 :results silent
   def defragment(puzzle):
       diskmap = parse_puzzle(puzzle)
 
@@ -1307,7 +1334,7 @@ We iterate over the input, where for each empty space we find, we move fileblock
 #+end_src
 
 Finally, we need to compute a checksum: =block_position * file_id=, where =file_id= is the index of the file blocks before moving them.
-#+begin_src python  :var example=testinput9 :results output :cache yes
+#+begin_src python +n 1 :var example=testinput9 :results output :cache yes
   def checksum(diskmap):
       result = 0
       for i, elem in enumerate(diskmap):
@@ -1331,7 +1358,7 @@ Finally, we need to compute a checksum: =block_position * file_id=, where =file_
 
 ** Part 2
 Part Two is slightly different, and I mistakenly thought I properly understood it twice. You have to move /entire/ file blocks, starting from the end of the diskmap and trying to put each fileblock at the leftmost possible space.
-#+begin_src python :var example=testinput9 :results output :cache yes
+#+begin_src python +n 1 :var example=testinput9 :results output :cache yes
   def defrag_2(puzzle):
       diskmap = parse_puzzle(puzzle)
 
@@ -1435,20 +1462,20 @@ As an example, see what end spaces you can reach from the trailhead at =[4 6]=:
 
 Note that =[2 5]= is duplicated so we need to remove this, hence the =distinct= call.
 
-#+begin_src clojure :var example=testinput10
+#+begin_src clojure +n 1 :var example=testinput10 :cache yes
   (def input (slurp "inputs/10"))
   (assert (= 36 (p1 example)))
   (p1 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[8debbe9a28176d7242cb0ec00207a309ad3088d8]:
 : 482
 : 
 
 ** Part 2
 Foreshadowing is complete! We need to find out many distinct routes begin at a given position, and sum that for each of the starting positions. For the example, the sum is *81*. This means that we just remove the ~(map distinct)~ call and we are done.
 
-#+begin_src clojure :results silent
+#+begin_src clojure +n 1 :results silent
   (defn p2 [input]
     (let [grid (aoc.util/adjacent-num-list-per-line input)
           trailheads (aoc.util/char-locations grid 0)]
@@ -1458,12 +1485,12 @@ Foreshadowing is complete! We need to find out many distinct routes begin at a g
            (reduce +))))
 #+end_src
 
-#+begin_src clojure :var example=testinput10
+#+begin_src clojure +n 1 :var example=testinput10 :cache yes
   (assert (= 81 (p2 example)))
   (p2 input)
 #+end_src
 
-#+RESULTS:
+#+RESULTS[96b1e6630ed52301ad108517ed33ef4c5fa4af27]:
 : 1094
 : 
 
