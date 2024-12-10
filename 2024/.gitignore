@@ -1,7 +1,7 @@
 inputs
 .nrepl-port
 aoc.tex
-day*.clj
+src/
 util.clj
 _minted*/
 

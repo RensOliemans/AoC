@@ -23,6 +23,7 @@ I define some common functions in =aoc.util=, mostly related to parsing the inpu
     (:require [clojure.string :as str]))
 #+end_src
 
+** Files
 #+begin_src clojure +n 1
   (defn string-as-lines
     "Outputs the string as a vector, one element per line."
@@ -65,6 +66,30 @@ Here, we want the whole file to be represented by a vector, where each element i
            (map #(map read-string %)))))
 #+end_src
 
+#+begin_src clojure +n 1
+  (defn adjacent-num-list-per-line
+    "Returns a vector of vectors"
+    [input]
+    (let [lines (string-as-lines input)]
+      (vec 
+       (->> lines
+            (map (fn [line]
+                   (vec (map #(Character/digit % 10) line))))))))
+#+end_src
+
+#+begin_src clojure :results pp replace :tangle no :var example=util-testtable
+  (adjacent-num-list-per-line example)
+#+end_src
+
+#+RESULTS:
+: [[7 -1 6 -1 4 -1 2 -1 1]
+:  [1 -1 2 -1 7 -1 8 -1 9]
+:  [9 -1 7 -1 6 -1 2 -1 1]
+:  [1 -1 3 -1 2 -1 4 -1 5]
+:  [8 -1 6 -1 4 -1 4 -1 1]
+:  [1 -1 3 -1 6 -1 7 -1 9]]
+: 
+
 This function, run on the example table seen above, will return the following:
 #+header: :var example=util-testtable
 #+begin_src clojure :results verbatim :tangle no :exports both
@@ -73,6 +98,52 @@ This function, run on the example table seen above, will return the following:
 
 #+RESULTS:
 : ((7 6 4 2 1) (1 2 7 8 9) (9 7 6 2 1) (1 3 2 4 5) (8 6 4 4 1) (1 3 6 7 9))
+
+** Grids
+First, the directions you can move in a grid:
+#+begin_src clojure +n 1
+  (def cardinal-directions
+    [[-1  0]   ; Up
+     [ 1  0]   ; Down
+     [ 0 -1]   ; Left
+     [ 0  1]]) ; Right
+
+  (def diagonal-directions
+    [[-1 -1]   ; NW
+     [-1  1]   ; NR
+     [ 1 -1]   ; SW
+     [ 1  1]]) ; SE
+
+  (def all-directions
+    (concat cardinal-directions diagonal-directions))
+#+end_src
+
+And how you can use them:
+#+begin_src clojure +n 1
+  (defn move [pos dir]
+    (let [[x y] pos
+          [x' y'] dir]
+      [(+ x x') (+ y y')]))
+#+end_src
+
+#+begin_src clojure :exports both :tangle no :results pp replace
+  (move [4 2] (first cardinal-directions))
+#+end_src
+
+#+RESULTS:
+: [3 2]
+: 
+
+And finding characters in a grid:
+#+begin_src clojure +n 1
+  (defn char-locations [grid x]
+    (mapcat
+     (fn [row string]
+       (keep-indexed (fn [col char] (when (= char x) [row col]))
+                     string))
+     (range)
+     grid))
+#+end_src
 
 #+LATEX: \clearpage
 
@@ -814,7 +885,6 @@ Perhaps this is a little too imperative, but I'm fine with it.
 
 #+RESULTS[0bd2fee5c8bf37beaaa8949231dd6252c760c0a4]:
 : 5208
-: 
 
 ** Part 2
 It's of course possible that the guard enters a loop, but fortunately that didn't occur in the input we were given. Part Two is concerned with /creating/ loops by adding obstacles. Specifically, /how many loops can we create by adding just a single obstacle?/
@@ -962,17 +1032,17 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
       (some #(= % result) targets)))
 #+end_src
 
-#+begin_src clojure +n 1 :var example=testinput7 :results replace :cache yes
+#+begin_src clojure +n 1 :var example=testinput7 :results replace pp :cache yes
   (assert (= 3749 (p1 example)))
   (def input (slurp "inputs/7"))
   (p1 input)
 #+end_src
 
-#+RESULTS[62162dade15973914f0339e7dff088c8b74f7735]:
+#+RESULTS[d4e6474f0ecd639a6ae9101d43597f5993d33020]:
 : 12839601725877
 
 ** Part 2
-#+begin_src clojure +n 1 :var example=testinput7 :results replace :cache yes
+#+begin_src clojure +n 1 :var example=testinput7 :results replace pp :cache yes
   (defn possible-ops
     [x y]
     [(* x y)
@@ -983,11 +1053,29 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
   (p1 input)
 #+end_src
 
-#+RESULTS[1af5c02dc79c689bd1447eefcd583d6fbdd59ecb]:
+#+RESULTS[48d1899cd6a7f4083342061e432bd48bc13e3d46]:
 : 149956401519484
 
 #+LATEX: \clearpage
-* Day 9
+* TODO Day 8
+:PROPERTIES:
+:header-args: :tangle src/day8.clj :exports both
+:header-args:clojure: :session *clojure-8*
+:END:
+
+** Part 1
+#+begin_src clojure
+  (let [input (slurp "inputs/8")]
+    (p1 input))
+#+end_src
+
+#+RESULTS:
+: class java.lang.NullPointerException
+
+** Part 2
+
+#+LATEX: clearpage
+* TODO Day 9
 :PROPERTIES:
 :header-args: :tangle src/day9.py :exports both
 :header-args:python: :session *python-9*
@@ -1116,5 +1204,106 @@ Part Two is slightly different, and I mistakenly thought I properly understood i
 
 #+RESULTS[67e1731656ecb211f1232c5ca7f088c258cfee0b]:
 : 9813645302006
+
+#+LATEX: \clearpage
+* Day 10
+:PROPERTIES:
+:header-args: :tangle src/day10.clj :exports both
+:header-args:clojure: :session *clojure-10* :results pp
+:END:
+
+** Part 1
+#+name: testinput10
+#+begin_example
+  89010123
+  78121874
+  87430965
+  96549874
+  45678903
+  32019012
+  01329801
+  10456732
+#+end_example
+
+Each position in the above map is given by a number and represents the /height/ of the map. A /hiking trail/ is a path that starts at height =0=, ends at height =9=, always increases by a height of exactly 1 at each step, and don't include diagonal steps. A /trailhead/ is any position that starts one or more hiking trails (so they always start at =0= here). A trailhead's /score/ is the number of 9-height positions reachable from that trailhead.
+
+The example above has 9 trailheads, which have scores of 5, 6, 5, 3, 1, 3, 5, 3 and 5, summing to *36*.
+
+#+begin_src clojure -n 1 :results silent
+  (ns aoc.10)
+#+end_src
+
+#+begin_src clojure +n 1 :results silent
+  (defn trailhead-score [grid trailhead])
+
+  (defn p1 [input]
+    (let [grid (aoc.util/adjacent-num-list-per-line input)
+          trailheads (aoc.util/char-locations grid 0)]
+      (->> trailheads
+           (map (partial trailhead-routes grid))
+           (map distinct)
+           (map count)
+           (reduce +))))
+#+end_src
+
+=trailhead-routes= is a recursive function, where we find the 9s we can reach, duplicated if they are reachable via multiple paths (spoilers for part 2). We traverse the =position='s neighbours and filter the ones that are 1 step higher. From these neighbours, we call the function again. When we are at height 8, we don't traverse further but instead return the amount of 9's next to us.
+
+#+begin_src clojure +n 1 :results silent
+  (defn trailhead-routes
+    [grid position]
+    (let [height (get-in grid position)
+          higher-neighbours
+          (->> aoc.util/cardinal-directions
+               (map (partial aoc.util/move position)) ;; all neighbours
+               (filter (fn [pos] (= (inc height)      ;; higher neighbours
+                                    (get-in grid pos)))))]
+      (if (= 8 height)
+        higher-neighbours
+        (mapcat #(trailhead-routes grid %) higher-neighbours))))
+#+end_src
+
+As an example, see what end spaces you can reach from the trailhead at =[4 6]=:
+#+begin_src clojure :var example=testinput10 :tangle no
+  (let [grid (aoc.util/adjacent-num-list-per-line example)]
+    (trailhead-routes grid [4 6]))
+#+end_src
+
+#+RESULTS:
+: ([2 5] [2 5] [4 5] [3 4])
+: 
+
+Note that =[2 5]= is duplicated so we need to remove this, hence the =distinct= call.
+
+#+begin_src clojure :var example=testinput10
+  (def input (slurp "inputs/10"))
+  (assert (= 36 (p1 example)))
+  (p1 input)
+#+end_src
+
+#+RESULTS:
+: 482
+: 
+
+** Part 2
+Foreshadowing is complete! We need to find out many distinct routes begin at a given position, and sum that for each of the starting positions. For the example, the sum is *81*. This means that we just remove the ~(map distinct)~ call and we are done.
+
+#+begin_src clojure :results silent
+  (defn p2 [input]
+    (let [grid (aoc.util/adjacent-num-list-per-line input)
+          trailheads (aoc.util/char-locations grid 0)]
+      (->> trailheads
+           (map (partial trailhead-routes grid))
+           (map count)
+           (reduce +))))
+#+end_src
+
+#+begin_src clojure :var example=testinput10
+  (assert (= 81 (p2 example)))
+  (p2 input)
+#+end_src
+
+#+RESULTS:
+: 1094
+: 
 
 #+LATEX: \clearpage
