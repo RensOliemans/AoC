@@ -107,16 +107,11 @@ Makes sense? We need the two tiny helper functions =sum= and =transpose=:
 #+end_src
 
 #+begin_src clojure +n 1 :results silent
-  (defn- sum "Finds the sum of a vector of numbers" [vec]
+  (defn sum "Finds the sum of a vector of numbers" [vec]
     (reduce + vec))
 
-  (defn- transpose "Transposes a matrix" [m]
+  (defn transpose "Transposes a matrix" [m]
     (apply mapv vector m))
-#+end_src
-
-With the final function being now quite easy to follow if you keep my strategy above in mind.
-Recall that the correct answer for the testinput was 11.
-#+begin_src clojure +n 1 :results pp
   (defn p1 [input]
     (let [input (aoc.util/num-list-per-line input)]
       (->> input
@@ -125,23 +120,18 @@ Recall that the correct answer for the testinput was 11.
            (transpose)
            (map #(abs (- (first %) (second %))))
            (sum))))
-
-  (p1 testinput)
 #+end_src
-
-#+RESULTS:
-: 11
-: 
 
 It works for the testinput, fantastic. Now let's open the file and run it on the input.
 The input file for day 1 can be found in the file =inputs/1=.
 
 #+begin_src clojure +n 1 :results pp :cache yes
+  (assert (= 11 (p1 testinput)))
   (def input (slurp "inputs/1"))
   (p1 input)
 #+end_src
 
-#+RESULTS[dc6cb8a4929cbd54177e36f822063ad4d1dd298b]:
+#+RESULTS[bddfa84f4ff6c82eb9ed6fdf2024ebfa53ff63ea]:
 : 2057374
 : 
 
@@ -995,5 +985,136 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
 
 #+RESULTS[1af5c02dc79c689bd1447eefcd583d6fbdd59ecb]:
 : 149956401519484
+
+#+LATEX: \clearpage
+* Day 9
+:PROPERTIES:
+:header-args: :tangle src/day9.py :exports both
+:header-args:python: :session *python-9*
+:END:
+
+I'm doing today's in python because I failed at clojure.
+
+A /disk map/ is given like below, and we need to rearrange it to remove the empty spaces, and compute a checksum based on the new arrangement.
+
+#+name: testinput9
+#+begin_example
+2333133121414131402
+#+end_example
+
+The digits alternate between indicating the length of a file, and the length of free space. The final goal is to move the rightmost file blocks to the leftmost empty spaces, until that's no longer possible. It's useful to keep track of the empty spaces and file blocks separately, so we build those two by looping over the file input.
+
+#+begin_src python :results silent
+  def parse_puzzle(puzzle):
+      files = list()
+      freespace = list()
+      for i, elem in enumerate(puzzle.strip()):
+          if i % 2 == 0:
+              files.append([i // 2] * int(elem))
+          if i % 2 == 1:
+              freespace.append(int(elem))
+      freespace.append(0)
+      return [list(a) for a in zip(files, freespace)]
+#+end_src
+
+** Part 1
+We iterate over the input, where for each empty space we find, we move fileblock from the right to the empty space. We keep track of two pointers: where we are at the beginning (where empty spaces might be), and where we are at the end (where we move blocks forward). We do this until the pointers overlap, and the moving logic breaks down into three rules:
+- space size == amount of file blocks :: Move file blocks to empty space, move to next empty
+  space, remove file blocks from end;
+- space size < amount of file blocks :: Move =space= amount of file blocks to empty space,
+  move to next empty space, remove =space= amount of file blocks from end;
+- space size > amount of file blocks :: Move file blocks to empty space, keep pointer at
+  current empty space, decrease empty space size, remove file blocks from end.
+#+begin_src python :results silent
+  def defragment(puzzle):
+      diskmap = parse_puzzle(puzzle)
+
+      result = list()
+      j = len(diskmap) - 1
+      i = 0
+      while i < j:
+          group, space = diskmap[i]
+          fileblock, _ = diskmap[j]
+
+          result.extend(group)
+
+          if space == len(fileblock):
+              result.extend(fileblock)
+              i += 1
+              j -= 1
+          elif space < len(fileblock):
+              result.extend([fileblock[0]] * space)
+              diskmap[j][0] = fileblock[:len(fileblock) - space]
+              i += 1
+          elif space > len(fileblock):
+              result.extend(fileblock)
+              diskmap[i][0] = []
+              diskmap[i][1] -= len(fileblock)
+              j -= 1
+
+      result.extend(diskmap[j][0])
+
+      return result
+#+end_src
+
+Finally, we need to compute a checksum: =block_position * file_id=, where =file_id= is the index of the file blocks before moving them.
+#+begin_src python  :var example=testinput9 :results output :cache yes
+  def checksum(diskmap):
+      result = 0
+      for i, elem in enumerate(diskmap):
+          elem = 0 if elem == '.' else elem
+          result += i * elem
+      return result
+
+  def p1(puzzle):
+      diskmap = defragment(puzzle)
+      return checksum(diskmap)
+
+  with open("inputs/9") as f:
+      contents = f.read()
+
+  assert p1(example) == 1928
+  print(p1(contents))
+#+end_src
+
+#+RESULTS[acbef15f435d35e7b6e60c639945d72cab07ce98]:
+: 6283170117911
+
+** Part 2
+Part Two is slightly different, and I mistakenly thought I properly understood it twice. You have to move /entire/ file blocks, starting from the end of the diskmap and trying to put each fileblock at the leftmost possible space.
+#+begin_src python :var example=testinput9 :results output :cache yes
+  def defrag_2(puzzle):
+      diskmap = parse_puzzle(puzzle)
+
+      j = len(diskmap) - 1
+      while j > 1:
+          tomove, innerspace = diskmap[j]
+          for i, (group, space) in enumerate(diskmap[:j]):
+              if len(tomove) <= space:
+                  diskmap[i][1] = 0  # immediately after i
+                  diskmap[j-1][1] += len(tomove) + innerspace  # add room where j was
+                  del diskmap[j]
+                  diskmap.insert(i+1, [tomove, space - len(tomove)])
+                  break
+          j -= 1
+
+      return flatten_diskmap(diskmap)
+
+  def flatten_diskmap(diskmap):
+      result = list()
+      for (group, space) in diskmap:
+          result.extend(group)
+          result.extend(['.'] * space)
+      return result
+
+  def p2(puzzle):
+      diskmap = defrag_2(puzzle)
+      return checksum(diskmap)
+  assert p2(example) == 2858
+  print(p2(contents))
+#+end_src
+
+#+RESULTS[67e1731656ecb211f1232c5ca7f088c258cfee0b]:
+: 9813645302006
 
 #+LATEX: \clearpage
