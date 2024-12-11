@@ -933,7 +933,7 @@ I can't think of a way to do this intelligently, but at least one insight is tha
           route (disj (set (guard-route grid start)) start)]
       (->> route
            (pmap (fn [new-obstacle]
-                  (route-has-loop? (replace-char grid new-obstacle \#) start)))
+                   (route-has-loop? (replace-char grid new-obstacle \#) start)))
            (filter true?)
            (count))))
 #+end_src
@@ -958,23 +958,44 @@ I can't think of a way to do this intelligently, but at least one insight is tha
               nil false ;; we exited the puzzle
               \. (recur next-location
                         directions
-                        (conj visited pair))
+                        visited)
               \# (recur location
                         (next directions)
                         (conj visited pair))))))))
 #+end_src
 
-On my laptop, this takes about 35 seconds to run on a single thread, but by default uses all of the threads (just by changing =map= into =pmap=, how freaking awesome is that!)
+On my laptop, this takes about 20 seconds to run on a single thread, but by default uses all of the threads (just by changing =map= into =pmap=, how freaking awesome is that!)
 
-#+begin_src clojure +n 1 :results replace pp :var example=testinput6
+#+begin_src clojure +n 1 :results replace pp :var example=testinput6 :cache yes
   (assert (= 6 (p2 example)))
   (time (p2 input))
 #+end_src
 
-#+RESULTS[0a0ac712951124f841d3db3e8a5f8e909547690b]:
-: "Elapsed time: 9085.253644 msecs"
+#+RESULTS[2b9fa6fd5cff40de63dab75a290db770f4b4ade4]:
+: "Elapsed time: 6011.385025 msecs"
 : 1972
-:
+: 
+
+*** Timing of different methods
+The following table shows a short overview of the results of ~(time (p2 input))~ (it's too slow for ~(crit/quick-bench)~) with some different variants:
+| Method                     | time |
+|----------------------------+------|
+| Set - always add & check   | 9s   |
+| Set - only add on obstacle | 6s   |
+| Set - only check on north  | 5.5  |
+| Counter (7000)             | 4s   |
+
+**** =set= methods.
+These methods refer to keeping track of a =set= of visited =(node, direction)= pairs. If we've seen one before, we must be in a loop. My original implementation was /Set - always add & check/: add /every/ location we visit to the =visited= set and check if we've seen it before. That turned out to be the slowest one—my code spent about 10% of its time hashing entries. One step faster is /Set - only add on obstacle/, which only adds an element to the set when we visit an obstacle.
+
+The fastest =set=-related method (though only slightly) was /Set - only check on north/, and this only checks if the current =(node, direction)=-pair is in =visited= if =direction == North=. This was counterintuitive for me since that meant it was actually doing some extra work: it might be traversing the current path for up to 3 extra obstacles compared to the previous one. However, the hashing was apparently so expensive compared to traversing the grid that this was still a hair faster.
+
+Since this was only slightly faster but made the code a bit convoluted and difficult to understand ("why are we only checking if we've been here if we're heading North right now?"), I opted for the second method.
+
+**** =Counter=.
+This is kind of a hack, but it's faster than the =set=-methods. Instead of a =visited= set, we keep track of a =counter= of nodes we've visited. Once we reach 7000, we assume we're in a loop and exit. 6500 also worked for me, but that might be too input-dependent.
+
+Still, any arbitrary number fails for some input, so I've opted to not do this.
 
 #+LATEX: \clearpage
 * Day 7
