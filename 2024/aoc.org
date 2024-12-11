@@ -964,14 +964,15 @@ I can't think of a way to do this intelligently, but at least one insight is tha
                         (conj visited pair))))))))
 #+end_src
 
-On my laptop, this takes about 15 seconds to run on a single thread, but by default uses all of the threads (just by changing =map= into =pmap=, how freaking awesome is that!)
+On my laptop, this takes about 35 seconds to run on a single thread, but by default uses all of the threads (just by changing =map= into =pmap=, how freaking awesome is that!)
 
-#+begin_src clojure +n 1 :results replace pp :var example=testinput6 :cache yes
+#+begin_src clojure +n 1 :results replace pp :var example=testinput6
   (assert (= 6 (p2 example)))
-  (p2 input)
+  (time (p2 input))
 #+end_src
 
 #+RESULTS[0a0ac712951124f841d3db3e8a5f8e909547690b]:
+: "Elapsed time: 9085.253644 msecs"
 : 1972
 :
 
