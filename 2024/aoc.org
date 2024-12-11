@@ -103,9 +103,9 @@ First, the directions you can move in a grid:
 #+begin_src clojure +n 1
   (def cardinal-directions
     [[-1  0]   ; Up
+     [ 0  1]   ; Right
      [ 1  0]   ; Down
-     [ 0 -1]   ; Left
-     [ 0  1]]) ; Right
+     [ 0 -1]]) ; Left
 
   (def diagonal-directions
     [[-1 -1]   ; NW
@@ -218,10 +218,11 @@ The input file for day 1 can be found in the file =inputs/1=.
 #+begin_src clojure +n 1 :results pp :cache yes
   (assert (= 11 (p1 testinput)))
   (def input (slurp "inputs/1"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[bddfa84f4ff6c82eb9ed6fdf2024ebfa53ff63ea]:
+#+RESULTS[c95abd35b669eeab46680d8e914a02e7e0f23873]:
+: "Elapsed time: 5.296958 msecs"
 : 2057374
 : 
 
@@ -258,10 +259,11 @@ Now, we can iterate over the first list (which we get by ~(transpose (numbers in
            (sum))))
 
   (assert (= 31 (p2 testinput)))
-  (p2 input)
+  (time (p2 input))
 #+end_src
 
-#+RESULTS[3352887d7d180d87b1dc656c9410e33f9467491e]:
+#+RESULTS[9281f65d030c8126137d0304aae126bf8329c0fd]:
+: "Elapsed time: 4.619827 msecs"
 : 23177084
 : 
 
@@ -318,8 +320,8 @@ test it out:
 : [2 3 1 2]
 : 
 
-Now just use that to determine whether a record is safe. Recall that the testinput had *2* safe records.
-#+begin_src clojure +n 1
+Now just use that to determine whether a record is safe. 
+#+begin_src clojure +n 1 :results silent
   (defn is-safe? [record]
     (let [differences (diffs record)]
       (and (every? #(<= 1 (abs %) 3) differences)
@@ -329,20 +331,17 @@ Now just use that to determine whether a record is safe. Recall that the testinp
     (->> (aoc.util/num-list-per-line input)
          (filter is-safe?)
          (count)))
-
-  (p1 testinput)
 #+end_src
 
-#+RESULTS:
-: 2
-: 
-
+Recall that the testinput had *2* safe records.
 #+begin_src clojure +n 1 :cache yes
+  (assert (= 2 (p1 testinput)))
   (def input (slurp "inputs/2"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[c04baf284769654869f544f68196e3a886f3be94]:
+#+RESULTS[c850b07a0a7e5df8355e51ee6e9d466775f54b2c]:
+: "Elapsed time: 16.115067 msecs"
 : 242
 : 
 
@@ -352,7 +351,7 @@ Now, the same rules apply as before, except if removing a single level from an u
 #+end_quote
 First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][e2dcab2f0de76c21477c5e871e029f0282c8fabc]]. It is much more efficient than the current solution, but much more convoluted and ugly to read. Right now, I just remove each level one by one and check if the record is safe then.
 
-#+begin_src clojure +n 1
+#+begin_src clojure +n 1 :results silent
   (defn drop-nth [coll n]
     (keep-indexed #(if (not= %1 n) %2) coll))
 
@@ -364,24 +363,20 @@ First I had a smart idea. Check out [[https://git.sr.ht/~rensoliemans/AoC/commit
     (->> (aoc.util/num-list-per-line input)
          (filter dampened-is-safe?)
          (count)))
-
-  (p2 testinput)
 #+end_src
-
-#+RESULTS:
-: 4
-: 
 
 #+begin_src clojure +n 1 :cache yes
-  (p2 input)
+  (assert (= 4 (p2 testinput)))
+  (time (p2 input))
 #+end_src
 
-#+RESULTS[afc0462f73c61ee1266956dcec879f9cad1c2029]:
+#+RESULTS[149e7549df95e6aee53e7a123c683bf00ecd5b7f]:
+: "Elapsed time: 53.09667 msecs"
 : 311
 : 
 
 *** Benchmark results
-The [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][old solution]] took on average =3.8= milliseconds to execute ~(p2 input)~, and the new solution about =6.0=. This is worth it, IMO, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
+The [[https://git.sr.ht/~rensoliemans/AoC/commit/e2dcab2f0de76c21477c5e871e029f0282c8fabc][old solution]] took on average =38= milliseconds to execute ~(p2 input)~, and the new solution about =60=. This is worth it, IMO, since the code is /much/ simpler. Next time, first do the easy thing, and then benchmark to see if it needs to be improved!
 #+LATEX: \clearpage
 * Day 3
 :PROPERTIES:
@@ -410,10 +405,11 @@ The goal is to extract all substrings that are of the exact form =mul(\d+,\d+)=,
 
 #+begin_src clojure +n 1 :cache yes
   (let [input (slurp "inputs/3")]
-    (p1 input))
+    (time (p1 input)))
 #+end_src
 
-#+RESULTS[a02b1ddc44c13defbcb1e25c2b97ede252f8e3fb]:
+#+RESULTS[5a4fbea0e2073afa7629f94241fbb2d1c2dd24ef]:
+: "Elapsed time: 12.06208 msecs"
 : 155955228
 : 
 
@@ -444,10 +440,11 @@ So, here's some elisp code that does that.
 And back to clojure for the now trivial second part.
 #+begin_src clojure +n 1 :cache yes
   (let [fixed-input (slurp "inputs/3-enabled")]
-    (p1 fixed-input))
+    (time (p1 fixed-input)))
 #+end_src
 
-#+RESULTS[1ba945ef13ca9844840e850811ae2ebd5ba29fd2]:
+#+RESULTS[53a753aec406eafe53a0cd786c476a8efc5bbcdf]:
+: "Elapsed time: 0.70303 msecs"
 : 100189366
 : 
 
@@ -477,68 +474,42 @@ MXMXAXMASX
 
 My idea is to search on the letter =X= and use each =X= as a starting point, where we count =XMAS= occurrences in each of the 8 different directions. Let's create a function =count-xmases-at= that counts the number of =XMAS=-es starting from a location. Then simply call that for each =X= found in the grid and sum.
 
-We're going to need to define two helper functions:
-- =char-locations= :: Returning all the locations of given character in the grid;
-- =is-xmas?= :: A function that takes the =grid=, a =start= coordinate and a =direction=. It
-  returns =true= if ="XMAS"= occurs in the =grid= from =start= in the given =direction=.
+This gives rise to the obvious helper function =is-xmas?=, which takes the =grid=, a =start= coordinate and a =direction=. It returns =true= if ="XMAS"= occurs in the =grid= from =start= in the given =direction=.
 
-Since we're working in a grid, let's make =char-locations= return a 2d vector like =[0 0]= to denote the coordinates in the grid. While we're at it, let's define those directions like so:
 #+begin_src clojure -n -r :results silent
   (ns aoc.4)
 #+end_src
 
-#+begin_src clojure +n 1 :results silent
-  (def directions
-    [[-1  0]   ; Up
-     [ 1  0]   ; Down
-     [ 0 -1]   ; Left
-     [ 0  1]   ; Right
-     [-1 -1]   ; NW
-     [-1  1]   ; NR
-     [ 1 -1]   ; SW
-     [ 1  1]]) ; SE
-#+end_src
-Which is a nice format to have, because you can then do something like this:
-#+begin_src clojure :tangle no :results output
-  (defn move [start direction]
+Using the =util= functions in [[*Grids][Util/Grids]], we can traverse the grid like so:
+#+begin_src clojure :tangle no
+  (let [start [4 5]
+        direction (first aoc.util/cardinal-directions)] ; Up
+    ; move up like so
+    (println (aoc.util/move start direction))
     (let [[x y] start
           [x' y'] direction]
-      [(+ x x') (+ y y')]))
-
-  (let [start [4 5]
-        direction [-1 0]] ;; up
-    (move start direction))
+      ; or like so
+      (print [(+ x x') (+ y y')])))
 #+end_src
 
 #+RESULTS:
 : [3 5]
+: [3 5]
 : 
 
-Which is really nice! So, let's define the final functions necessary for Part One:
+Which is really handy! So, let's define the final functions necessary for Part One:
 #+begin_src clojure +n 1 :results silent
-  (defn char-locations [grid x]
-    (mapcat
-     (fn [row string]
-       (keep-indexed (fn [col char] (when (= char x) [row col]))
-                     string))
-     (range)
-     grid))
-
   (defn is-xmas? "Does the grid `grid` contain the string \"XMAS\",
    starting at `start` and going in `direction`?"
     [grid start direction]
-    (let [[startx starty] start
-          [x' y'] direction]
-      (loop [x startx
-             y starty
-             chars (seq "XMAS")]
-        (if (empty? chars)
-          true
-          (if (not= (get-in grid [x y]) (first chars))
-            false
-            (recur (+ x x')
-                   (+ y y')
-                   (rest chars)))))))
+    (loop [location start
+           chars (seq "XMAS")]
+      (if (empty? chars)
+        true
+        (if (not= (get-in grid location) (first chars))
+          false
+          (recur (aoc.util/move location direction)
+                 (rest chars))))))
 #+end_src
 
 Now we can tie everything together. =is-xmas?= returns true if the grid contains the word ="XMAS"= in a given =direction=. After we've found all =X= characters, we can count the amount of =XMAS=-es connected to it by counting all =direction= for which =is-xmas?= returns true.
@@ -548,17 +519,18 @@ Now we can tie everything together. =is-xmas?= returns true if the grid contains
 
   (defn p1 [input]
     (let [grid (aoc.util/string-as-lines input)
-          xs (char-locations grid \X)]
+          xs (aoc.util/char-locations grid \X)]
       (->> xs
-           (map #(count-xmases-at grid % directions))
+           (map #(count-xmases-at grid % aoc.util/all-directions))
            (reduce +))))
 
   (assert (= 18 (p1 example)))
   (def input (slurp "inputs/4"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[c6c29e6af7832c497210844d4425e2348c516c24]:
+#+RESULTS[4e8d11334543f75370701fd8fedcd0b478bc5e1c]:
+: "Elapsed time: 65.706921 msecs"
 : 2447
 : 
 
@@ -572,22 +544,13 @@ M.S
 
 We could have reused the functionality above to search for =MAS=-es, and then only count a =MAS= that has a nice diagonal partner sharing the =A=. However, I found that a bit tricky to reason about, so I've opted to search for all of the =A=-s in the text, and finding =MAS= strings diagonally from that =A=. If there are exactly two =MAS=-es, we know that we got an =X-MAS=.
 
-Instead of =is-xmas?=, we now have =is-mas?=, checking from a =middle= =A= instead of a starting =X=. Note that we're only counting *X*-=MAS=-es, so only use diagonals:
-#+begin_src clojure +n 1 :results silent
-  (def diagonal-directions
-    [[-1 -1]   ; NW
-     [-1  1]   ; NE
-     [ 1 -1]   ; SW
-     [ 1  1]]) ; SE
-#+end_src
-
+Instead of =is-xmas?=, we now have =is-mas?=, checking from a =middle= =A= instead of a starting =X=. Note that we're only counting *X*-=MAS=-es, so only use diagonals.
 =is-mas?= is now pretty trivial:
 #+begin_src clojure +n 1 :results silent
   (defn is-mas? [grid middle direction]
-    (let [[x y] middle
-          [x' y'] direction]
-      (and (= \M (get-in grid [(+ x x') (+ y y')]))
-           (= \S (get-in grid [(- x x') (- y y')])))))
+    (let [opposite-direction (mapv #(* -1 %) direction)]
+      (and (= \M (get-in grid (aoc.util/move middle direction)))
+           (= \S (get-in grid (aoc.util/move middle opposite-direction))))))
 #+end_src
 
 And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
@@ -597,17 +560,18 @@ And =count-mases-at= is virtually identical to =count-xmases-at= from Part One.
 
   (defn p2 [input]
     (let [grid (aoc.util/string-as-lines input)
-          as (char-locations grid \A)]
+          as (aoc.util/char-locations grid \A)]
       (->> as
-           (map #(count-mases-at grid % diagonal-directions))
+           (map #(count-mases-at grid % aoc.util/diagonal-directions))
            (filter #(= % 2))
            (count))))
 
   (assert (= 9 (p2 example)))
-  (p2 input)
+  (time (p2 input))
 #+end_src
 
-#+RESULTS[be8a03919400d057ad5c63dd70f6d911c7fb69c9]:
+#+RESULTS[04e77df28b53bc0380bd43f8d2d00dd515f0c9ac]:
+: "Elapsed time: 39.701527 msecs"
 : 1868
 : 
 
@@ -765,16 +729,42 @@ Now we got everything, ain't we?
 #+begin_src clojure +n 1 :var example=testinput5 :cache yes
   (assert (= 143 (p1 example)))
   (def input (slurp "inputs/5"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[5f41173096fd7f1dfa91fc34a4321cc47a5507e7]:
+#+RESULTS[fd264eac729fdfdf136e9ff2796d50cdebc57275]:
+: "Elapsed time: 957.383223 msecs"
 : 4637
 : 
 
 yes
+
+*** Optimization
+Instead of doing the filtering in =p1= like above, we can do it like so:
+#+begin_src clojure :tangle no :results silent
+  (defn p1 [input]
+    (let [[orderings updates dep-graph] (parse-input input)
+          sorted? (partial sorted? dep-graph)]
+      (->> updates
+           (pmap #(list % (sorted? %)))
+           (filter last)
+           (pmap first)
+           (pmap middle-num)
+           (reduce +))))
+#+end_src
+
+This is a bit uglier, but it does make it about 3 times as fast:
+#+begin_src clojure :tangle no :cache yes
+  (time (p1 input))
+#+end_src
+
+#+RESULTS[024071c131bc53b628bda2a154f928c7c22e8fcf]:
+: "Elapsed time: 321.296271 msecs"
+: 4637
+: 
+
 ** Part 2
-Surprise surprise, we need to sort the incorrect updates! We need to take the sum of the middle numbers of only the /incorrect/ updates. Our prescience is immeasurable.
+Surprise surprise, we need to sort the incorrect updates! We need to take the sum of the middle numbers of only the /incorrect/ updates. Our prescience is immeasurable. 
 #+begin_src clojure +n 1 :results silent
   (defn p2 [input]
     (let [[orderings updates deps] (parse-input input)
@@ -782,19 +772,47 @@ Surprise surprise, we need to sort the incorrect updates! We need to take the su
           sort (partial sort deps)]
       (->> updates
            (filter #(not (is-sorted? %)))
-           (map sort)
-           (map middle-num)
+           (pmap sort)
+           (pmap middle-num)
            (reduce +))))
 #+end_src
 
 #+begin_src clojure +n 1 :var example=testinput5 :cache yes
   (assert (= 123 (p2 example)))
-  (p2 input)
+  (time (p2 input))
 #+end_src
 
-#+RESULTS[a11abc211e4442a17d741b2c0049e5f8f4629b5c]:
+#+RESULTS[7a1e3c1ac66b97b9ce04130b770e0a82b303ed3b]:
+: "Elapsed time: 1151.020532 msecs"
 : 6370
 : 
+
+*** Same optimization
+Again, first do the sorting in parallel, save that alongside the unsorted list, filter the ones that differ, and then do the rest.
+#+begin_src clojure :tangle no :results silent
+  (defn p2 [input]
+  (let [[orderings updates deps] (parse-input input)
+        is-sorted? (partial sorted? deps)
+        sort (partial sort deps)]
+    (->> updates
+         (pmap #(list % (sort %)))
+         (filter #(not= (first %) (last %)))
+         (pmap last)
+         (pmap middle-num)
+         (reduce +))))
+#+end_src
+
+#+begin_src clojure :var example=testinput5 :cache yes
+  (assert (= 123 (p2 example)))
+  (time (p2 input))
+#+end_src
+
+#+RESULTS[7a1e3c1ac66b97b9ce04130b770e0a82b303ed3b]:
+: "Elapsed time: 312.860191 msecs"
+: 6370
+: 
+
+Nice!
 
 #+LATEX: \clearpage
 * Day 6
@@ -836,17 +854,9 @@ If you replace entered places by =X=, you'd get the following output, with *41* 
 ......#X..
 #+end_example
 
-Turning clockwise means that we have only four directions:
+Turning clockwise means that we only use the four directions in =aoc.util/cardinal-directions= (see [[*Grids][Util/Grids]]).
 #+begin_src clojure -n -r
   (ns aoc.6)
-#+end_src
-
-#+begin_src clojure +n 1
-  (def directions
-    [[-1  0]   ; Up
-     [ 0  1]   ; Right
-     [ 1  0]   ; Down
-     [ 0 -1]]) ; Left
 #+end_src
 
 Our function will simply compute the route the guard takes as a vector of coordinates, and count the distinct elements of said vector:
@@ -859,7 +869,7 @@ Our function will simply compute the route the guard takes as a vector of coordi
 
   (defn p1 [input]
     (let [grid (aoc.util/string-as-lines input)
-          start (first (aoc.4/char-locations grid \^))
+          start (first (aoc.util/char-locations grid \^))
           route (guard-route grid start)]
       (count (distinct route))))
 #+end_src
@@ -877,7 +887,7 @@ As for =guard-route=, we loop through the grid, where each iteration of the loop
     (let [size (count grid)
           grid (replace-char grid start \.)]
       (loop [location start
-             directions (cycle directions)
+             directions (cycle aoc.util/cardinal-directions)
              route []]
         (let [[x y] location
               [x' y'] (first directions)
@@ -899,11 +909,13 @@ Perhaps this is a little too imperative, but I'm fine with it.
 #+begin_src clojure +n 1 :results pp replace :var example=testinput6 :cache yes
   (assert (= 41 (p1 example)))
   (def input (slurp "inputs/6"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[0bd2fee5c8bf37beaaa8949231dd6252c760c0a4]:
+#+RESULTS[509edc8f321d7351420a5e3c53533ae5c52f4eaf]:
+: "Elapsed time: 15.44612 msecs"
 : 5208
+: 
 
 ** Part 2
 It's of course possible that the guard enters a loop, but fortunately that didn't occur in the input we were given. Part Two is concerned with /creating/ loops by adding obstacles. Specifically, /how many loops can we create by adding just a single obstacle?/
@@ -917,7 +929,7 @@ I can't think of a way to do this intelligently, but at least one insight is tha
 
   (defn p2 [input]
     (let [grid (aoc.util/string-as-lines input)
-          start (first (aoc.4/char-locations grid \^))
+          start (first (aoc.util/char-locations grid \^))
           route (disj (set (guard-route grid start)) start)]
       (->> route
            (pmap (fn [new-obstacle]
@@ -933,7 +945,7 @@ I can't think of a way to do this intelligently, but at least one insight is tha
     (let [size (count grid)
           grid (replace-char grid start \.)]
       (loop [location start
-             directions (cycle directions)
+             directions (cycle aoc.util/cardinal-directions)
              visited #{}]
         (let [[x y] location
               [x' y'] (first directions)
@@ -1054,12 +1066,13 @@ Now the banger =is-correct?=. There are ~800 equations, the longest one has 12 n
 #+begin_src clojure +n 1 :var example=testinput7 :results replace pp :cache yes
   (assert (= 3749 (p1 example)))
   (def input (slurp "inputs/7"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[d4e6474f0ecd639a6ae9101d43597f5993d33020]:
+#+RESULTS[b1ed02ab0c4ce10ad8dd1a62bde4bee00974c2a1]:
+: "Elapsed time: 158.039096 msecs"
 : 12839601725877
-:
+: 
 
 ** Part 2
 Now this is an elegant Part Two.
@@ -1071,15 +1084,16 @@ Now this is an elegant Part Two.
      (Long/parseLong (str x y))])
 
   (assert (= 11387 (p1 example)))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[48d1899cd6a7f4083342061e432bd48bc13e3d46]:
+#+RESULTS[9316547ade2cd71420284b365db704dd43e5f7b5]:
+: "Elapsed time: 5462.497567 msecs"
 : 149956401519484
-:
+: 
 
 ** Optimization
-There is a nice way to optimize this. Since this one actually takes quite long (Part One takes about 200ms, Part Two about 6.2s), I might end up doing this at some time, but the trick is that you don't need to multiply the last two numbers together if the equation target isn't divisible by the last number. That frees up half of the possible combinations, and you can of course do this for the second-to-last number as well, et cetera. It's probably nice to reverse the operation list for this.
+There is a nice way to optimize this. Since this one actually takes quite long (Part One takes about 150ms, Part Two around 5-6s), I might end up doing this at some time, but the trick is that you don't need to multiply the last two numbers together if the equation target isn't divisible by the last number. That frees up half of the possible combinations, and you can of course do this for the second-to-last number as well, et cetera. It's probably nice to reverse the operation list for this.
 
 For Part Two, you can optimize the =||= operation by skipping it if the target number doesn't have the final number as suffix.
 
@@ -1196,10 +1210,11 @@ Okay that function was a bit ugly, but the weird behaviour with the sign was so 
 #+begin_src clojure +n 1 :results pp :var example=testinput8 :cache yes
   (assert (= 14 (p1 example)))
   (def input (slurp "inputs/8"))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[cbd4c8f8dfc0f1c816079b5a59ee09f322c0b71b]:
+#+RESULTS[24714abeb415bfe2aa5ca57ec4db1e3981503dbb]:
+: "Elapsed time: 41.71457 msecs"
 : 371
 : 
 
@@ -1251,14 +1266,15 @@ Check how it works (and how much wasted work we do) (line goes off page for dram
 #+RESULTS:
 : ([-11 44] [-10 41] [-9 38] [-8 35] [-7 32] [-6 29] [-5 26] [-4 23] [-3 20] [-2 17] [-1 14] [0 11] [1 8] [2 5] [3 2] [4 -1] [5 -4] [6 -7] [7 -10] [8 -13] [9 -16] [10 -19] [11 -22] [12 -25])
 
-But, since it's easily fast enough (runs basically instantly), I don't really care. [[*Day 2][Personal growth!]]
+But, since it's easily fast enough, I don't really care. [[*Day 2][Personal growth!]]
 
 #+begin_src clojure +n 1 :results pp :var example=testinput8 :cache yes
   (assert (= 34 (p1 example)))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[94c52d7d77683a56a9ca48abc343b43f16930af8]:
+#+RESULTS[bb0012f0be51a7c1fb243aadfa544366369d0ea7]:
+: "Elapsed time: 53.923789 msecs"
 : 1229
 : 
 
@@ -1413,7 +1429,7 @@ Part Two is slightly different, and I mistakenly thought I properly understood i
   10456732
 #+end_example
 
-Each position in the above map is given by a number and represents the /height/ of the map. A /hiking trail/ is a path that starts at height =0=, ends at height =9=, always increases by a height of exactly 1 at each step, and don't include diagonal steps. A /trailhead/ is any position that starts one or more hiking trails (so they always start at =0= here). A trailhead's /score/ is the number of 9-height positions reachable from that trailhead.
+Each position in the above map is given by a number and represents the /height/ of the map. A /hiking trail/ is a path that starts at height =0=, ends at height =9=, and always increases by a height of exactly 1 at each step. A /trailhead/ is any position that starts one or more hiking trails. A trailhead's /score/ is the number of 9-height positions reachable from that trailhead.
 
 The example above has 9 trailheads, which have scores of 5, 6, 5, 3, 1, 3, 5, 3 and 5, summing to *36*.
 
@@ -1422,19 +1438,21 @@ The example above has 9 trailheads, which have scores of 5, 6, 5, 3, 1, 3, 5, 3 
 #+end_src
 
 #+begin_src clojure +n 1 :results silent
-  (defn trailhead-score [grid trailhead])
+  (defn trailhead-routes [grid trailhead])
+
+  (defn trail-routes [grid]
+    (let [trailheads (aoc.util/char-locations grid 0)]
+      (map #(trailhead-routes grid %) trailheads)))
 
   (defn p1 [input]
-    (let [grid (aoc.util/adjacent-num-list-per-line input)
-          trailheads (aoc.util/char-locations grid 0)]
-      (->> trailheads
-           (map (partial trailhead-routes grid))
+    (let [routes (trail-routes (aoc.util/adjacent-num-list-per-line input))]
+      (->> routes
            (map distinct)
            (map count)
            (reduce +))))
 #+end_src
 
-=trailhead-routes= is a recursive function, where we find the 9s we can reach, duplicated if they are reachable via multiple paths (spoilers for part 2). We traverse the =position='s neighbours and filter the ones that are 1 step higher. From these neighbours, we call the function again. When we are at height 8, we don't traverse further but instead return the amount of 9's next to us.
+=trailhead-routes= gives us the 9s we can reach from a =trailhead=, duplicated if they are reachable via multiple paths. We traverse the =position='s neighbours and filter the ones that are 1 step higher. From these neighbours, we call the function again. When we are at height 8, we don't traverse further but instead return the amount of 9's next to us.
 
 #+begin_src clojure +n 1 :results silent
   (defn trailhead-routes
@@ -1460,37 +1478,36 @@ As an example, see what end spaces you can reach from the trailhead at =[4 6]=:
 : ([2 5] [2 5] [4 5] [3 4])
 : 
 
+
 Note that =[2 5]= is duplicated so we need to remove this, hence the =distinct= call.
 
 #+begin_src clojure +n 1 :var example=testinput10 :cache yes
   (def input (slurp "inputs/10"))
   (assert (= 36 (p1 example)))
-  (p1 input)
+  (time (p1 input))
 #+end_src
 
-#+RESULTS[8debbe9a28176d7242cb0ec00207a309ad3088d8]:
+#+RESULTS[5b7295667bf0a4138086c930fcc63cc1604fe23d]:
+: "Elapsed time: 28.457049 msecs"
 : 482
 : 
 
 ** Part 2
-Foreshadowing is complete! We need to find out many distinct routes begin at a given position, and sum that for each of the starting positions. For the example, the sum is *81*. This means that we just remove the ~(map distinct)~ call and we are done.
-
-#+begin_src clojure +n 1 :results silent
-  (defn p2 [input]
-    (let [grid (aoc.util/adjacent-num-list-per-line input)
-          trailheads (aoc.util/char-locations grid 0)]
-      (->> trailheads
-           (map (partial trailhead-routes grid))
-           (map count)
-           (reduce +))))
-#+end_src
+Foreshadowing is complete! We need to find out many routes begin at a given position, and sum that for each of the starting positions. For the example, the sum is *81*. This means that we just remove the ~(map distinct)~ call and we are done.
 
 #+begin_src clojure +n 1 :var example=testinput10 :cache yes
+  (defn p2 [input]
+    (let [routes (trail-routes (aoc.util/adjacent-num-list-per-line input))]
+      (->> routes
+           (map count)
+           (reduce +))))
+
   (assert (= 81 (p2 example)))
-  (p2 input)
+  (time (p2 input))
 #+end_src
 
-#+RESULTS[96b1e6630ed52301ad108517ed33ef4c5fa4af27]:
+#+RESULTS[e4f228b124c435510422be804d92cd9e4c385ce0]:
+: "Elapsed time: 28.731688 msecs"
 : 1094
 : 
 
@@ -1504,35 +1521,32 @@ Foreshadowing is complete! We need to find out many distinct routes begin at a g
 ** Part 1
 We get a row of stones with numbers on them that changes each time we blink:
 - An engraved =0= will be converted to a =1=;
-- An engraged number with an even amount of digits will be split into two stones;
-- Otherwise, an engraved =n= will be converted to =n \cdot 2024=.
+- An engraved number with an even amount of digits will be split into two stones;
+- Otherwise, an engraved =n= will be converted to =n·2024=.
 
-After 25 blinks, the two numbers below will have be converted into *55312* stones. This leads itself nicely to recursion, and even though it grows exponentially that way, I'll have to look into caching/memoization for clojure.
+After 25 blinks, the two numbers below will have be converted into *55312* stones. This leads itself nicely to recursion, and even though it grows exponentially that way, caching/memoization can take care of that nicely.
 
 #+name: testinput11
 #+begin_example
 125 17
 #+end_example
 
+With some knowledgable lookahead into the future, let's make =p1= variable in the amount of blinks, defaulting to =25=. The input numbers are on a single line, separated by space—we parse them to an int, run =num-stones= on it in parallel, and sum the result.
 #+begin_src clojure -n -r :results silent
-  (ns aoc.11)
-#+end_src
+  (ns aoc.11 (:require [clojure.string :as str]))
 
-With some knowledgable lookahead into the future, let's make =p1= variable in the amount of blinks, defaulting to /25/. The input numbers are on a single line, separated by space—we parse them to an int, run =num-stones= on it in parallel, and sum the result.
-#+begin_src clojure +n 1 :results silent
   (defn num-stones [stone n])
 
   (defn p1
     ([input] (p1 input 25))
     ([input blinks]
-     (let [numbers (clojure.string/split input #"\s")]
-       (->> numbers
-            (map read-string)
+     (let [numbers (str/split input #"\s")]
+       (->> (map read-string numbers)
             (pmap #(num-stones % blinks))
             (reduce +)))))
 #+end_src
 
-=num-stones= is a recursive function that's pretty straightforward:
+=num-stones= is a recursive function that's pretty straightforward given the rules above. It computes the amount of stones we get after =n= blinks and a given starting =stone=. We introduce a small function =split-stone= to help us with the second rule:
 #+begin_src clojure +n 1 :results silent
   (defn split-stone [stone]
     (let [sstone (str stone)
@@ -1551,14 +1565,14 @@ With some knowledgable lookahead into the future, let's make =p1= variable in th
 #+end_src
 
 And now let's run it! This is /not/ memoized, meaning that it computes everything all the time. We're in Part One, after all.
-#+begin_src clojure +n 1 :results pp :var example=testinput11
+#+begin_src clojure +n 1 :results pp :var example=testinput11 :cache yes
   (assert (= 55312 (p1 example)))
   (def input (slurp "inputs/11"))
   (time (p1 input))
 #+end_src
 
 #+RESULTS[b6ee91f13f1c35689e054d4ea70e970c65b8b458]:
-: "Elapsed time: 113.569181 msecs"
+: "Elapsed time: 124.957979 msecs"
 : 200446
 : 
 
