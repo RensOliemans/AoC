@@ -1495,3 +1495,100 @@ Foreshadowing is complete! We need to find out many distinct routes begin at a g
 : 
 
 #+LATEX: \clearpage
+* Day 11
+:PROPERTIES:
+:header-args: :tangle src/day11.clj :exports both
+:header-args:clojure: :session *clojure-11*
+:END:
+
+** Part 1
+We get a row of stones with numbers on them that changes each time we blink:
+- An engraved =0= will be converted to a =1=;
+- An engraged number with an even amount of digits will be split into two stones;
+- Otherwise, an engraved =n= will be converted to =n \cdot 2024=.
+
+After 25 blinks, the two numbers below will have be converted into *55312* stones. This leads itself nicely to recursion, and even though it grows exponentially that way, I'll have to look into caching/memoization for clojure.
+
+#+name: testinput11
+#+begin_example
+125 17
+#+end_example
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.11)
+#+end_src
+
+With some knowledgable lookahead into the future, let's make =p1= variable in the amount of blinks, defaulting to /25/. The input numbers are on a single line, separated by space—we parse them to an int, run =num-stones= on it in parallel, and sum the result.
+#+begin_src clojure +n 1 :results silent
+  (defn num-stones [stone n])
+
+  (defn p1
+    ([input] (p1 input 25))
+    ([input blinks]
+     (let [numbers (clojure.string/split input #"\s")]
+       (->> numbers
+            (map read-string)
+            (pmap #(num-stones % blinks))
+            (reduce +)))))
+#+end_src
+
+=num-stones= is a recursive function that's pretty straightforward:
+#+begin_src clojure +n 1 :results silent
+  (defn split-stone [stone]
+    (let [sstone (str stone)
+          mid (/ (count sstone) 2)]
+      (map Long/parseLong [(subs sstone 0 mid) (subs sstone mid)])))
+
+  (defn num-stones [stone n]
+    (if (= 0 n)
+      1
+      (cond (zero? stone) (num-stones 1 (dec n))
+            (even? (count (str stone)))
+            (let [[l r] (split-stone stone)]
+              (+ (num-stones l (dec n))
+                 (num-stones r (dec n))))
+            :default (num-stones (* 2024 stone) (dec n)))))
+#+end_src
+
+And now let's run it! This is /not/ memoized, meaning that it computes everything all the time. We're in Part One, after all.
+#+begin_src clojure +n 1 :results pp :var example=testinput11
+  (assert (= 55312 (p1 example)))
+  (def input (slurp "inputs/11"))
+  (time (p1 input))
+#+end_src
+
+#+RESULTS[b6ee91f13f1c35689e054d4ea70e970c65b8b458]:
+: "Elapsed time: 113.569181 msecs"
+: 200446
+: 
+
+** Part 2
+Okay that was decent, but it grows exponentially wrt =blinks=:
+#+begin_src clojure :results output pp :tangle no :cache yes
+  (time (p1 input 25))
+  (time (p1 input 29))
+  (time (p1 input 33))
+#+end_src
+
+#+RESULTS[2a7c1ac856d2a15062ee937f6f3ce2f26b2e46eb]:
+: "Elapsed time: 126.310147 msecs"
+: "Elapsed time: 601.609624 msecs"
+: "Elapsed time: 3127.742377 msecs"
+: 5655557
+: 
+
+And now it just so happens that Part Two is Part One, except for *75 blinks*. This means that the above growth isn't all that feasible. Fortunately, we can use the clojure built-in [[https://clojuredocs.org/clojure.core/memoize][=memoize=]]. Let's also rerun it on Part One to see how fast that can go.
+
+#+begin_src clojure +n 1 :results pp :cache yes
+  (def num-stones (memoize num-stones))
+  (time (p1 input))
+  (time (p1 input 75))
+#+end_src
+
+#+RESULTS[ad47ff673277fa875ad7f6a8b2329c9c30261a7e]:
+: "Elapsed time: 5.958738 msecs"
+: "Elapsed time: 191.842359 msecs"
+: 238317474993392
+: 
+
+#+LATEX: \clearpage
