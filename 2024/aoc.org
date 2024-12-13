@@ -1628,3 +1628,234 @@ And now it just so happens that Part Two is Part One, except for *75 blinks*. Th
 : 
 
 #+LATEX: \clearpage
+* Day 13
+:PROPERTIES:
+:header-args: :tangle src/day13.py :exports both
+:header-args:python: :session *python-13*
+:header-args:latex: :exports results
+:END:
+
+** Part 1
+This is our example input:
+#+name: testinput13
+#+begin_example
+Button A: X+94, Y+34
+Button B: X+22, Y+67
+Prize: X=8400, Y=5400
+
+Button A: X+26, Y+66
+Button B: X+67, Y+21
+Prize: X=12748, Y=12176
+
+Button A: X+17, Y+86
+Button B: X+84, Y+37
+Prize: X=7870, Y=6450
+
+Button A: X+69, Y+23
+Button B: X+27, Y+71
+Prize: X=18641, Y=10279
+#+end_example
+
+Which is a set of /machines/ separated by empty lines, with the goal to find {{{math(a)}}} and {{{math(b)}}} such that {{{math(ax + bx = px)}}} and {{{math(ay + by = py)}}}. So, each machine is a system of linear equations which we're have to solve. Let's use the first machine as an example and call the equations
+#+begin_export latex
+$L1$
+#+end_export
+and
+#+begin_src latex
+  $L2$.
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+$L2$.
+#+end_export
+
+#+begin_src latex
+  \begin{align*}
+    L1 = 94a + 22b & = 8400 \\
+    L2 = 34a + 67b & = 5400
+  \end{align*}
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{align*}
+  L1 = 94a + 22b & = 8400 \\
+  L2 = 34a + 67b & = 5400
+\end{align*}
+#+end_export
+
+We're going to use some form of [[https://en.wikipedia.org/wiki/Gaussian_elimination][Gaussian elimination]] to solve this. This entails removing {{{math(a)}}} from equation 2, and removing {{{math(b)}}} from equation 1. In this case, removing {{{math(a)}}} from equation 2 is done by performing the update:
+#+begin_src latex
+  $L2 = L2 - \frac{34}{94} \cdot L1$
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+$L2 = L2 - \frac{34}{94} \cdot L1$
+#+end_export
+
+Which gives us this:
+
+#+begin_src latex
+  \begin{align*}
+    L1 = 94a + 22b            & = 8400 \\
+    L2 = 0 + \frac{5550}{94}b & = \frac{222000}{94}
+  \end{align*}
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{align*}
+  L1 = 94a + 22b            & = 8400 \\
+  L2 = 0 + \frac{5550}{94}b & = \frac{222000}{94}
+\end{align*}
+#+end_export
+
+Which we can simplify (we don't /need/ to, but it makes this easier to follow) by multipling {{{math(L2)}}} by 94:
+#+begin_src latex
+  \begin{align*}
+    L1 = 94a + 22b & = 8400 \\
+    L2 = L1 = 0 + 5550b & = 222000
+  L\end{align*}
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{align*}
+  L1 = 94a + 22b & = 8400 \\
+  L2 = L1 = 0 + 5550b & = 222000
+L\end{align*}
+#+end_export
+
+Now, let's remove {{{math(b)}}} from equation 1, in this case with this update:
+#+begin_src latex
+  $L1 = L1 - \frac{22}{5550} \cdot L1$
+  \begin{align*}
+    L1 = 94a + 0   & = 7520 \\
+    L2 = 0 + 5550b & = 222000
+  \end{align*}
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+$L1 = L1 - \frac{22}{5550} \cdot L1$
+\begin{align*}
+  L1 = 94a + 0   & = 7520 \\
+  L2 = 0 + 5550b & = 222000
+\end{align*}
+#+end_export
+
+Now that we've isolated the variables we know our solution:
+#+begin_src latex
+  \begin{align*}
+    a & = 80 \\
+    b & = 40
+  \end{align*}
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{align*}
+  a & = 80 \\
+  b & = 40
+\end{align*}
+#+end_export
+
+And our final puzzle result is obtained by doing this for all machines where you can find a solution, multiplying {{{math(a)}}} by 3 and {{{math(b)}}} by 1, and summing this for all equations. There is only one caveat, and that is that we're going to run into floating point issues. You could use other number formats, but for efficiency I'm just going to keep it to floats and fix the issue with a somewhat arbtirary epsilon (though this is [[https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/][hard to do generally]], it'll probably work fine for this input). Let's get coding.
+
+All machines are separated by a newline, so split them on that:
+#+begin_src python -n -r :results silent
+  def p1(puzzle):
+      equations = puzzle.strip().split("\n\n")
+      return sum(price(*parse_machine(eq))
+                 for eq in equations)
+#+end_src
+
+I'm using two functions that I haven't defined yet, =parse_machine= and =price=. I'm splitting the puzzles up in newlines, so I'll get a block of 3 lines that define a /machine/. I want =parse_machines= to return an =Equation=, which is a tranposition of the how we get them line-by-line (see equations above).
+#+begin_src python +n 1 :results silent
+  from collections import namedtuple
+
+  Equation = namedtuple('Equation', ['x', 'y', 'g'])
+
+  def parse_machine(machine: str) -> tuple[Equation]:
+      """ Parses a 'machine' into an Equation.
+      Example machine:
+
+          Button A: X+94, Y+34
+          Button B: X+22, Y+67
+          Prize: X=8400, Y=5400
+      """
+      (ax, ay), (bx, by), (gx, gy) = map(parse_line, machine.split("\n"))
+      return (Equation(ax, bx, gx),
+              Equation(ay, by, gy))
+
+  def parse_line(line: str) -> list[int]:
+      pattern = r"(?:Button|Prize) ?[AB]?: X[+=](\d+), Y[+=](\d+)"
+      return map(int, re.match(pattern, line).groups())
+#+end_src
+
+The =price= of an equation is defined as {{{math(3a + b)}}} if {{{math(a)}}} and {{{math(b)}}} solve the equation, and {{{math(0)}}} otherwise. The puzzle actually says that you must find the /lowest/ price possible, but by looking at the input I found out that all systems of equations actually have a unique solution, so I can freely ignore that red herring.
+
+#+begin_src python +n 1 :results silent
+  def price(one: Equation, two: Equation) -> int:
+      a, b = 0, 0
+      solution = solve(one, two)
+      if solution:
+          a, b = solution
+      return a*3 + b*1
+#+end_src
+
+Now for some high school math. If it doesn't make sense anymore, look at what we did above or read [[https://en.wikipedia.org/wiki/Gaussian_elimination][the wiki page on Gaussian elimination]] and it should.
+#+begin_src python +n 1 :results silent
+  from typing import Optional
+
+  EPSILON = 0.001
+
+  def solve(one: Equation, two: Equation) -> Optional[int]:
+      # Remove x from equation 2
+      factor = two.x / one.x
+      two = Equation(two.x - factor * one.x,  # Always 0
+                     two.y - factor * one.y,
+                     two.g - factor * one.g)
+
+      # Remove y from equation 1
+      factor = one.y / two.y
+      one = Equation(one.x - factor * two.x,  # Just one.x
+                     one.y - factor * two.y,  # Always 0
+                     one.g - factor * two.g)
+
+      # Simplify to forms 'a + 0 = gx' and '0 + b = gy'
+      one = Equation(1, 0, one.g / one.x)
+      two = Equation(0, 1, two.g / two.y)
+
+      if all(abs(round(s) - s) < EPSILON for s in [one.g, two.g]):
+          return round(one.g), round(two.g)
+#+end_src
+
+#+begin_src python +n 1 :var example=testinput13 :results output
+  assert 480 == p1(example)
+  with open("inputs/13") as f:
+      puzzle = f.read()
+  print(p1(puzzle))
+#+end_src
+
+#+RESULTS:
+: 37901
+
+** Part 2
+The prize locations weren't correct: we need to add =100000000= to the =X= and =Y= position of each prize. We can easily alter =parse_machine= and rerun =p1= on the input:
+#+begin_src python +n 1 :results output
+  def parse_machine(machine: str) -> tuple[Equation]:
+      add = 10000000000000
+      (ax, ay), (bx, by), (gx, gy) = map(parse_line, machine.split("\n"))
+      return (Equation(ax, bx, gx + add),
+              Equation(ay, by, gy + add))
+
+  print(p1(puzzle))
+#+end_src
+
+#+RESULTS:
+: 77407675412647
+
+#+LATEX: \clearpage
