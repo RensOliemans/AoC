@@ -4,5 +4,6 @@
   :url "https://git.sr.ht:~rensoliemans/aoc"
   :dependencies [[org.clojure/clojure "1.12.0"]
                  [org.clojure/math.combinatorics "0.3.0"]
+                 [org.clojure/data.priority-map "1.2.0"]
                  [criterium "0.4.6"]]
   :plugins [[lein-tar "3.2.0"]])

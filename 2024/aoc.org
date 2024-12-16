@@ -2318,3 +2318,195 @@ Let's focus on east and west first, since that is easiest.
 : 
 
 #+LATEX: \clearpage
+* Day 16
+:PROPERTIES:
+:header-args: :tangle src/day16.clj :exports both
+:header-args:clojure: :session *clojure-16*
+:END:
+
+** Part 1
+Let's traverse some mazes! We get an input that looks like this:
+#+name: testinput16
+#+begin_example
+###############
+#.......#....E#
+#.#.###.#.###.#
+#.....#.#...#.#
+#.###.#####.#.#
+#.#.#.......#.#
+#.#.#####.###.#
+#...........#.#
+###.#.#####.#.#
+#...#.....#.#.#
+#.#.#.###.#.#.#
+#.....#...#.#.#
+#.###.#.#.#.#.#
+#S..#.....#...#
+###############
+#+end_example
+
+And we need to go from =S= to =E=. We start facing east, and each rotation (clock- or counterclockwise) increases our cost by =1000=; each step by =1=. For the example above, the lowest possible score is *7036*.
+
+I thought of using /A*/, but since a trivial heuristic (Manhattan / Manhattan + 1000 per 90° angle) is likely to be way off, it's probably not that much faster than [[https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Using_a_priority_queue][Dijkstra]], so let's use that.
+
+#+begin_src clojure -n -r :results silent :var example=testinput16
+  (ns aoc.16
+    (:require [clojure.data.priority-map :refer [priority-map]]))
+
+  (defn dijkstra [grid start])
+
+  (defn paths
+    "Takes a puzzle input, parses it as a grid, and runs dijkstra on the
+    result. Returns what dijkstra returns: a map of {:dist dist :prev
+    prev}."
+    [grid]
+    (let [start (first (aoc.util/char-locations grid \S))]
+      (dijkstra grid start)))
+
+  (defn p1 [grid paths]
+    (let [end (first (aoc.util/char-locations grid \E))
+          path (:dist paths)
+          scores (for [x [0 1 2 3]]
+                   (path {:state end :dir x}))]
+      (apply min scores)))
+#+end_src
+
+This is more or less part one, but for Dijkstra's algorithm. We use the algorithm from [[https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Using_a_priority_queue][the wiki page]], modified so that the cost is appropriately computed: 1 for moving forwards, 1000 for turning clock- or counterclockwise. We use a couple of helper functions, let's go through them one by one.
+
+First, Dijkstra itself. Note that we use as state ~{:state start :dir 1}~ here, =start= is a =[x y]= vector, =dir= is a direction-the index of =aoc.utils/cardinal-directions=. The goal of Dijkstra is to end up with two maps: =dist= and =prev=, by using the priority queue =q=. Hence, all helper functions are going to take these as input, and return an updated version of them.
+#+begin_src clojure +n 1 :results silent
+  (defn process-vertex [grid q dist prev])
+
+  (defn dijkstra [grid start]
+    (let [start-state {:state start :dir 1}] ; East
+      (loop [q (priority-map start-state 0)
+             dist {start-state 0}
+             prev {start-state #{}}]
+        (if (empty? q)
+          {:dist dist :prev prev}
+          (let [[q dist prev] (process-vertex grid q dist prev)]
+            (recur q dist prev))))))
+#+end_src
+
+=process-vertex= takes the next vertex from the queue and concatenates the results from =forward-neighbour= and =side-neighbours= to the result. If we find a vertex via a path that is already more expensive than a previously found one, we don't update the maps.
+#+begin_src clojure +n 1 :results silent
+  (defn forward-neighbour [grid q dist prev parent cost])
+  (defn side-neighbours [grid q dist prev parent cost])
+
+  (defn process-vertex [grid q dist prev]
+    (let [[u cost] (peek q)
+          [x y] (:state u)
+          d (:dir u)
+          q (pop q)]
+      (if (< (dist u ##Inf) cost)
+        [q dist prev] ; We already have a cheaper path to node u
+        (let [[q dist prev] (forward-neighbour grid q dist prev u cost)
+              [q dist prev] (side-neighbours grid q dist prev u cost)]
+          [q dist prev]))))
+#+end_src
+
+=forward-neighbour= updates the =q,dist,prev= maps if we find a new cost that is 1 lower than the existing cost. We use =update-states= to update the maps appropriately, since =side-neighbours= is going to do the exact same things.
+
+Note that =update-states= is slightly different than the standard Dijkstra: instead of =prev= being a map mapping a state to a previous state, we map a state to a set of previous states that have the same cost. Doing this makes Part Two automatic.
+#+begin_src clojure +n 1 :results silent
+  (defn update-states [new-state new-cost q dist prev parent]
+    (let [existing-cost (dist new-state ##Inf)]
+      (cond
+        (< new-cost existing-cost)
+        [(assoc q new-state new-cost)
+         (assoc dist new-state new-cost)
+         (assoc prev new-state #{parent})]
+        (= new-cost existing-cost)
+        [q dist
+         (update prev new-state (fnil conj #{}) parent)]
+        :default
+        [q dist prev])))
+
+  (defn is-movable? [grid location]
+    (let [element (get-in grid location)]
+      (cond
+        (nil? element) false
+        (= \# element) false
+        :default true)))
+
+  (defn forward-neighbour [grid q dist prev u cost]
+    (let [[x y] (:state u)
+          d (:dir u)
+          new-loc (aoc.util/move [x y] (aoc.util/cardinal-directions d))
+          new-state {:state new-loc :dir d}
+          new-cost (inc cost)]
+      (if (not (is-movable? grid new-loc))
+        [q dist prev]
+        (update-states new-state new-cost q dist prev u))))
+#+end_src
+
+And =side-neighbours= is very similar, except that the direction changes and =[x y]= don't and that the cost goes =+ 1000=. We use =reduce= to easily make the same change for left (~(mod (dec d) 4)~) and right (~(mod (inc d) 4)~).
+#+begin_src clojure +n 1 :results silent
+  (defn side-neighbours [grid q dist prev u cost]
+    (let [[x y] (:state u)
+          d (:dir u)
+          pc (count prev)]
+      (reduce
+       (fn [[q dist prev] nd]
+         (let [new-state {:state [x y] :dir nd}
+               new-cost (+ cost 1000)]
+           (update-states new-state new-cost q dist prev u)))
+       [q dist prev]
+       [(mod (dec d) 4)
+        (mod (inc d) 4)])))
+#+end_src
+
+Note that we depart slightly from established tradition of calling ~(p1 input)~ and ~(p2 input)~. That is because calling ~(dijkstra)~ is the biggest time burden, and I don't want to do that for both parts.
+
+#+begin_src clojure +n 1 :var example=testinput16 :results pp :cache yes
+  (def exgrid (aoc.util/string-as-lines example))
+  (def expaths (paths exgrid))
+
+  (assert (= 7036 (p1 exgrid expaths)))
+
+  (def input (slurp "inputs/16"))
+  (def grid (aoc.util/string-as-lines input))
+
+  (print "Computing Dijkstra, ")
+  (time (def path (paths grid)))
+
+  (time (p1 grid path))
+#+end_src
+
+#+RESULTS[ba683a8f294746661dd6d88b8fccaccc0123e328]:
+: Computing Dijkstra, "Elapsed time: 1153.071665 msecs"
+: "Elapsed time: 0.240615 msecs"
+: 85420
+: 
+
+** Part 2
+Now we need to find all items that lie on an optimal path. Since we kept track of all of these in =prev=, that is very simple: we just need to reconstruct the paths that can end up at the end state (in any direction), and count the distinct elements on that path.
+#+begin_src clojure +n 1 :results pp :cache yes
+  (defn reconstruct-path [prev state]
+    (let [prev-states (prev state)]
+      (if (empty? prev-states)
+        [[state]]
+        (for [prev-state prev-states
+              path (reconstruct-path prev prev-state)]
+          (conj path state)))))
+
+  (defn p2 [grid paths]
+    (let [end (first (aoc.util/char-locations grid \E))
+          prev (:prev paths)
+          all-paths (for [x [0 1 2 3]]
+                  (reconstruct-path prev {:state end :dir x}))]
+      (->> (flatten all-paths)
+           (map :state)
+           distinct
+           count)))
+
+  (assert (= 45 (p2 exgrid expaths)))
+  (time (p2 grid path))
+#+end_src
+
+#+RESULTS[189443d55fe39f6452928fa77cda2b72dc51db13]:
+: "Elapsed time: 1260.567037 msecs"
+: 492
+: 
+
+#+LATEX: \clearpage
