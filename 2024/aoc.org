@@ -2152,7 +2152,7 @@ Since we're going to update the grid quite often, I'm not going to store it as a
 
 We use two helper functions:
 - =move=, which returns the target coordinates given a start, direction and =n=;
-- - =items-to-move= this computes the amount of blocks we have to move. If there's no block in
+- =items-to-move= this computes the amount of blocks we have to move. If there's no block in
   front of us, that's just the next tile. Otherwise, it's the tiles in the given direction
   until there's no more blocks.
 

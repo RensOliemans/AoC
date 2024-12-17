@@ -49,7 +49,7 @@ class TwoDGrid:
 cardinal_directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
 
-def neighbours(grid: TwoDGrid, element: element):
+def neighbours(grid: TwoDGrid, element: Element):
     return filter(lambda el: el is not None, none_neighbours(grid, element))
 
 
