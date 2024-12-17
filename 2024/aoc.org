@@ -2045,3 +2045,276 @@ If we find out when these appear at the same time, we surely find the christmas 
 : 8258
 
 #+LATEX: \clearpage
+* Day 15
+:PROPERTIES:
+:header-args: :tangle src/day15.clj :exports both
+:header-args:clojure: :session *clojure-15*
+:END:
+
+** Part 1
+We get a grid and a list of instructions. They're separated by two newlines, the instructions themselves have newlines as well, but they need to be removed (??). The instructionset is just a list of directions for the robot (=@=) to move. If the robot encounters a box (=O=), it pushes that box and any following blocks, unless there is a wall (=#=) in the way, in which case it ignores the instruction.
+
+#+name: testinput15
+#+begin_example
+##########
+#..O..O.O#
+#......O.#
+#.OO..O.O#
+#..O@..O.#
+#O#..O...#
+#O..O..O.#
+#.OO.O.OO#
+#....O...#
+##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
+#+end_example
+
+At the end of the instructions, the example above looks like this:
+#+begin_example
+##########
+#.O.O.OOO#
+#........#
+#OO......#
+#OO@.....#
+#O#.....O#
+#O.....OO#
+#O.....OO#
+#OO....OO#
+##########
+#+end_example
+
+After which we have to perform the following calculation: {{{math(100 \cdot x_p + y_p, \forall p \in \text{Points})}}}. This gives us, for the example input, a sum of =10092=.
+
+We're going to follow the instructions via =follow-instructions=, which just iterates over the instructions until they're empty and calls =move-in-grid= for each one, which returns the updated grid and a new location.
+
+Since we're going to update the grid quite often, I'm not going to store it as a vec of strings, but as a vec of vecs (of characters).
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.15
+    (:require [clojure.string :as str]))
+
+  (defn parse-puzzle [input]
+    (let [[grid instructions] (str/split input #"\n\n")
+          grid (aoc.util/string-as-lines grid)
+          instructions (-> (str/replace instructions #"\n" "")
+                           (str/trim))]
+      [(mapv vec grid) instructions]))
+
+  (defn move-in-grid [grid location direction])
+
+  (defn follow-instructions
+    ([grid instructions]
+     (let [location (first (aoc.util/char-locations grid \@))]
+       (follow-instructions grid instructions location)))
+
+    ([grid instructions location]
+     (loop [grid grid
+            instructions instructions
+            location location]
+       (if (empty? instructions)
+         grid
+         (let [[grid location] (move-in-grid grid location (first instructions))]
+           (recur grid (drop 1 instructions) location))))))
+
+  (defn compute-gps-coords
+    ([grid] (compute-gps-coords grid \O))
+    ([grid char]
+     (->> (aoc.util/char-locations grid char)
+          (map (fn [[x y]] (+ (* 100 x) y)))
+          (reduce +))))
+
+  (defn p1 [input]
+    (let [[grid instructions] (parse-puzzle input)
+          grid (follow-instructions grid instructions)]
+      (compute-gps-coords grid)))
+#+end_src
+
+=move-in-grid= takes the =grid=, a =location= and a =direction=, and does the following things in order:
+1. Check what items we have to move (this depends on the amount of =O=-s in front of us);
+2. If there's a =#= in the way, don't update the grid or location;
+3. Otherwise, update the grid. The way we do this seems somewhat convoluted but ensures that
+   we don't have to do a lot of grid updates if we have to push many blocks. What we do is:
+   1. Move a =O= to the "block destination". If we're just moving 1 step and there is no =O=
+      we have to move, the destination is also "our destination" and this will be overriden.
+      If there are =n= blocks to push, this moves the next block to the end of that blocklist.
+   2. Replace our position by an empty one (=.=)
+   3. Move our position by one step in the direction.
+
+We use two helper functions:
+- =move=, which returns the target coordinates given a start, direction and =n=;
+- - =items-to-move= this computes the amount of blocks we have to move. If there's no block in
+  front of us, that's just the next tile. Otherwise, it's the tiles in the given direction
+  until there's no more blocks.
+
+#+begin_src clojure +n 1 :results silent
+  (defn move
+    ([[x y] direction]
+     (move [x y] direction 1))
+    ([[x y] direction n]
+     (condp = direction
+       \^ [(- x n) y]
+       \> [x (+ y n)]
+       \v [(+ x n) y]
+       \< [x (- y n)])))
+
+  (defn items-to-move [grid location direction]
+    (loop [location (move location direction)
+           items []]
+      (let [it (get-in grid location)
+            items (conj items it)]
+        (condp = it
+          \# items
+          \. items
+          \O (recur (move location direction) items)))))
+
+  (defn move-in-grid
+    "Takes the grid, a start location and a direction to move in, and
+    returns an updated grid and the new location. Does not move if
+    stuck, and updates boxes correctly in the grid when moving."
+    [grid location direction]
+    (let [items (items-to-move grid location direction)]
+      (if (some #(= \# %) items)
+        ;; Stuck
+        [grid location]
+        (let [moveto (move location direction (count items))]
+          [(-> grid
+               (assoc-in moveto \O)
+               (assoc-in location \.)
+               (assoc-in (move location direction) \@))
+           (move location direction)]))))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :cache yes
+  (assert = (10092 (p1 example)))
+  (def input (slurp "inputs/15"))
+  (time (p1 input))
+#+end_src
+
+#+RESULTS[3c793a7e385f7f0ebfa6c8b3640700862f9d4ede]:
+: "Elapsed time: 186.722449 msecs"
+: 1471826
+: 
+
+** Part 2
+Part Two is concerned with a warehouse that's twice the size: =#= is converted to =##=, =.= to =..=, =@= to =@.=, and =O= to =[]=. Look at this example to see how this impacts us:
+#+begin_example
+##############
+##......##..##
+##...[][]...##
+##....[]....##
+##....@.....##
+##..........##
+##############
+#+end_example
+
+In this case, we cannot push =^=, since one of the boxes touches a wall. The rest of the puzzle stays the same, but this means that we cannot use the same logic to update the grid (pushing a =O= at the end of a stack).
+
+#+begin_src clojure +n 1 :results silent
+  (defn p2 [input]
+    (let [input (-> input
+                    (str/replace #"\#" "##")
+                    (str/replace #"O" "[]")
+                    (str/replace #"\." "..")
+                    (str/replace #"@" "@."))
+          [grid instructions] (parse-puzzle input)
+          grid (follow-instructions grid instructions)]
+      (compute-gps-coords grid \[)))
+#+end_src
+
+This is the correct shell of Part Two, except that our functions =push= and =items-to-move= had Part One things hardcoded. Let's recall what they need to do and redefine them for Part Two.
+
+- =items-to-move= :: Given a location and a direction, it finds the elements in the grid that
+  should be moved. In P1, this was just the next item, except if we have multiple blocks after
+  each other in our direction, in which case we'll have to move all of them.
+
+  The goal is of course the same, but the way of finding these items becomes more complicated
+  in this part. If we are facing east or west, little changes, except that the blocks now take
+  up two spaces in this direction. If we are facing north or south, we will always face one
+  half of the blocks, and we will have to look for other blocks to move in our direction for
+  the other half of the block as well.
+
+- =push= :: Again, if we are facing east or west, nothing changes. Otherwise, we will
+  have to push each block in =items-to-move= in the same way we checked for which ones we'll
+  have to move. I'm afraid that this will get ugly.
+
+Let's focus on east and west first, since that is easiest.
+
+#+begin_src clojure +n 1 :results silent
+  (defn follow-instructions
+    ([grid instructions]
+     (follow-instructions grid instructions (first (aoc.util/char-locations grid \@))))
+    ([grid instructions location]
+     (loop [grid grid
+            instructions instructions
+            location location]
+       (if (empty? instructions)
+         grid
+         (let [direction (first instructions)
+               [grid location]
+               (try [(push grid location direction) (move location direction)]
+                    (catch Exception e [grid location]))]
+           (recur grid (drop 1 instructions) location))))))
+
+  (defn push [grid location direction]
+    (case direction
+      (\^ \v) (push-vertical grid location direction)
+      (\< \>) (push-horizontal grid location direction)))
+
+  (defn push-horizontal [grid location direction]
+    (let [spot (move location direction)
+          nextbox (move location direction 2)]
+      (condp = (get-in grid spot)
+        \] (-> grid
+            (push-horizontal nextbox direction)
+            (move-box (move spot direction) (move spot direction 2)))
+        \[ (-> grid
+            (push-horizontal nextbox direction)
+            (move-box spot (move spot direction)))
+        \# (throw (Exception. "Cannot push through a wall."))
+        grid)))
+
+  (defn move-box [grid from to]
+    (let [[fx fy] from
+          [tx ty] to]
+      (-> grid
+          (assoc-in from \.)
+          (assoc-in [fx (inc fy)] \.)
+          (assoc-in to \[)
+          (assoc-in [tx (inc ty)] \]))))
+
+  (defn push-vertical [grid location direction]
+    (let [spot (move location direction)]
+      (condp = (get-in grid spot)
+        \[ (-> grid
+               (push-vertical spot direction)
+               (push-vertical (move spot \>) direction)
+               (move-box spot (move spot direction)))
+        \] (-> grid
+               (push-vertical spot direction)
+               (push-vertical (move spot \<) direction)
+               (move-box (move spot \<) (move (move spot direction) \<)))
+        \# (throw (Exception. "Cannot push through a wall."))
+        grid)))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :cache yes
+  (assert (= 9021 (p2 example)))
+  (time (p2 input))
+#+end_src
+
+#+RESULTS[e8f9146a8296feb4ee627ae87ed0c3fd80ab5b33]:
+: "Elapsed time: 169.494403 msecs"
+: 1457703
+: 
+
+#+LATEX: \clearpage
