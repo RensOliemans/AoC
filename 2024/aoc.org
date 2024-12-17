@@ -1656,19 +1656,7 @@ Button B: X+27, Y+71
 Prize: X=18641, Y=10279
 #+end_example
 
-Which is a set of /machines/ separated by empty lines, with the goal to find {{{math(a)}}} and {{{math(b)}}} such that {{{math(ax + bx = px)}}} and {{{math(ay + by = py)}}}. So, each machine is a system of linear equations which we're have to solve. Let's use the first machine as an example and call the equations
-#+begin_export latex
-$L1$
-#+end_export
-and
-#+begin_src latex
-  $L2$.
-#+end_src
-
-#+RESULTS:
-#+begin_export latex
-$L2$.
-#+end_export
+Which is a set of /machines/ separated by empty lines, with the goal to find {{{math(a)}}} and {{{math(b)}}} such that {{{math(ax + bx = px)}}} and {{{math(ay + by = py)}}}. So, each machine is a system of linear equations which we're have to solve. Let's use the first machine as an example and call the equations {{{math(L1)}}} and {{{math(L2)}}}.
 
 #+begin_src latex
   \begin{align*}
@@ -1857,5 +1845,203 @@ The prize locations weren't correct: we need to add =100000000= to the =X= and =
 
 #+RESULTS:
 : 77407675412647
+
+#+LATEX: \clearpage
+* Day 14
+:PROPERTIES:
+:header-args:clojure: :tangle src/day14.clj :exports both 
+:header-args:python: :session *python-14* :tangle src/day14.py :exports both
+:END:
+
+** Part 1
+We have a bunch of robots that are moving in a grid. Each one is given an initial coordinate and a velocity, like so:
+#+name: testinput14
+#+begin_example
+p=0,4 v=3,-3
+p=6,3 v=-1,-3
+p=10,3 v=-1,2
+p=2,0 v=2,-1
+p=0,0 v=1,3
+p=3,0 v=-2,-2
+p=7,6 v=-1,-3
+p=3,0 v=-1,-2
+p=9,3 v=2,3
+p=7,3 v=-1,2
+p=2,4 v=2,-3
+p=9,5 v=-3,-3
+#+end_example
+
+We need to find out where the robots are after =100= /seconds/, assuming a grid of =101x103= - the robots wrap around if they exit the grid. We can just multiply the velocities by =100= and mod them with the width and length.
+
+The solution is found by grouping the elements in four quadrants, and taking the product of the count of robots per quadrant. Taking the input above in mind, let's define =parse-line= which quickly grabs the relevant numbers, and =move-n= as well while we're at it.
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.14
+    (:require [clojure.string :as str]))
+
+  (defn parse-line [line]
+    (->> (re-matches #"p=(\d+),(\d+) v=(-?\d+),(-?\d+)" line)
+         rest
+         (map read-string)))
+
+  (defn move-n [width length n [x y dx dy]]
+    [(mod (+ x (* n dx)) width)
+     (mod (+ y (* n dy)) length)])
+#+end_src
+
+Now for doing Part One:
+
+#+begin_src clojure +n 1 :results silent
+  (defn quadrant [width length [x y]])
+
+  (def width 101)
+  (def length 103)
+
+  (defn p1
+    ([input] (p1 input 101 103))
+    ([input width length]
+     (let [quadrant (partial quadrant width length)
+           move-n (partial move-n width length)]
+       (->> (str/split input #"\n")
+            (map parse-line)
+            (map #(move-n 100 %))
+            (group-by quadrant)
+            (filter #(some? (first %)))
+            (map last)
+            (map count)
+            (reduce *)))))
+#+end_src
+
+To rehash the operations above in the text: we need to find all robots, move them 100 spaces along the grid, group them into quadrants, count the quadrants and take the product of the counts.
+
+We left =quadrant= empty, the input for =group-by=. We want it to return a vector of size 2, where =[0 0]= means the northwest quadrant, and =[1 1]= the souteast quadrant. The items in the middle shouldn't belong to any quadrant, and we'll not return anything for that - hence the ~(filter #(some? (first %)))~ line above.
+#+begin_src clojure +n 1 :results silent
+  (defn quadrant
+    [width length [x y]]
+    (let [midx (dec (/ (inc width) 2))
+          midy (dec (/ (inc length) 2))]
+      (if-not (or (= x midx) (= y midy))
+        [(int (/ x (inc midx))) (int (/ y (inc midy)))])))
+#+end_src
+
+Let's run it!
+#+begin_src clojure +n 1 :results pp :var example=testinput14
+  (let [width 11
+        length 7]
+    (assert (= 12 (p1 example width length))))
+
+  (def input (slurp "inputs/14"))
+  (time (p1 input))
+#+end_src
+
+#+RESULTS:
+: "Elapsed time: 22.91994 msecs"
+: 228410028
+: 
+
+** Part 2
+We need to find out what the first time a /Christmas tree/ appears in the grid. We don't get a definition, so I figured let's print out a boatload of grids. I did so, and found two recurring patterns:
+- A horizontal pattern appeared on step =18= and reappears every =103= steps.
+- A vertical pattern appeared on step =77= and reappears every =101= steps.
+
+If we find out when these appear at the same time, we surely find the christmas tree. So we need to find whole numbers {{{math(x, y)}}} for which {{{math(18 + 103x = 77 + 101y)}}}. In this case.
+
+#+begin_src python -n -r :results silent
+  import time
+  import re
+  from pprint import pprint
+  from collections import defaultdict
+  from functools import reduce
+
+  WIDTH = 101
+  LENGTH = 103
+
+
+  with open("inputs/14") as f:
+      puzzle = f.read()
+
+  def p1(puzzle):
+      robots = puzzle.strip().split('\n')
+      locations = [find_location(robot, 100, WIDTH, LENGTH) for robot in robots]
+      return count_in_quadrants(locations)
+
+  def find_location(robot, steps, width, length) -> tuple[int]:
+      pattern = r"p=(\d+),(\d+) v=(-?\d+),(-?\d+)"
+      x, y, dx, dy = map(int, re.match(pattern, robot).groups())
+      return ((x + dx * steps) % width,
+              (y + dy * steps) % length)
+
+
+  def product(items: list[int]) -> int:
+      return reduce(lambda x, y: x * y, items)
+
+
+  def count_in_quadrants(locations: list[tuple[int]]) -> int:
+      quads = defaultdict(int)
+      for location in locations:
+          quad = quadrant(location)
+          if quad:
+              quads[quad] += 1
+      return product(quads.values())
+
+  def quadrant(location: tuple[int]) -> int:
+      x, y = location
+      midx, midy = (WIDTH + 1) / 2 - 1, (LENGTH + 1) / 2 - 1
+      if not (x == midx or y == midy):
+          return (int(x / (midx + 1)), int(y / (midy + 1)))
+
+
+  def p2(puzzle):
+      pattern = r"p=(\d+),(\d+) v=(-?\d+),(-?\d+)"
+      robots = [map(int, re.match(pattern, robot).groups())
+                for robot in puzzle.strip().split('\n')]
+      loop = 10403
+      i = 8528
+      while True:
+          print(i)
+          print_grid((seconds(*robot, i) for robot in robots))
+
+          i += loop
+          input()
+
+
+
+  def seconds(x, y, dx, dy, seconds):
+      return ((x + dx * seconds) % WIDTH, (y + dy * seconds) % LENGTH, dx, dy)
+
+
+  def print_grid(robots):
+      robots = {(x, y) for x, y, _, _ in robots}
+      for row in range(LENGTH):
+          for col in range(WIDTH):
+              if (col, row) in robots:
+                  print('#', end='')
+              else:
+                  print('.', end='')
+          print()
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :results output
+  def find_convergence(hor, vert):
+      hor = [hor]
+      vert = [vert]
+      while True:
+          new_hor = hor[-1] + 103
+          hor.append(new_hor)
+          new_vert = vert[-1] + 101
+          vert.append(new_vert)
+          if new_hor in vert:
+              yield new_hor
+          if new_vert in hor:
+              yield new_vert
+
+  n = find_convergence(18, 77)
+  print(next(n))
+#+end_src
+
+#+RESULTS:
+: 8258
 
 #+LATEX: \clearpage
