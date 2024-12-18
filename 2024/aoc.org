@@ -2510,3 +2510,197 @@ Now we need to find all items that lie on an optimal path. Since we kept track o
 : 
 
 #+LATEX: \clearpage
+* Day 17
+:PROPERTIES:
+:header-args: :tangle src/day17.clj :exports both
+:header-args:clojure: :session *clojure-17*
+:END:
+
+** Part 1
+We get to implement a basic computer, with 8 different /operations/ and 3 /registers/. I'll cite the first two here:
+
+#+begin_quote
+The adv instruction (opcode 0) performs division. The numerator is the value in the A register. The denominator is found by raising 2 to the power of the instruction's combo operand. (So, an operand of 2 would divide A by 4 (2^2); an operand of 5 would divide A by 2^B.) The result of the division operation is truncated to an integer and then written to the A register.
+
+The bxl instruction (opcode 1) calculates the bitwise XOR of register B and the instruction's literal operand, then stores the result in register B.
+#+end_quote
+
+You might notice (I didn't at first) that the division is a simple bitshift, that'll come in handy. The testinput looks like this:
+
+#+name: testinput17
+#+begin_example
+Register A: 729
+Register B: 0
+Register C: 0
+
+Program: 0,1,5,4,3,0
+#+end_example
+
+With the program being a list of =operation,operand= codes. There's some magic with the /operand/ going on: some operations take a /literal operand/ (see =bxl= above), and some a /combo operand/ (see =adv= above). The /combo operand/ looks like this:
+#+begin_quote
+- Combo operands 0 through 3 represent literal values 0 through 3.
+- Combo operand 4 represents the value of register A.
+- Combo operand 5 represents the value of register B.
+- Combo operand 6 represents the value of register C.
+- Combo operand 7 is reserved and will not appear in valid programs.
+#+end_quote
+
+A quick look at the testinput and the general input shows us that registers =B= and =C= are always zero, so we can create a function named =computer= that takes as input the value of register =A= and the programlist. It'll be a loop through the operations. It can't be a clean =reduce=, since we have a =jnz= operation that jumps around by modifying the instruction pointer.
+
+As for our puzzle result: we have an =out= operation that outputs a number. The output format of our puzzle should be those numbers joined by a comma. Let's get hacking:
+#+begin_src clojure -n -r :results silent
+  (ns aoc.17
+    (:require [clojure.string :as str]))
+
+  (defn parse-input [puzzle])
+
+  (defn computer [a program])
+
+  (defn p1 [input]
+    (let [[a, program] (parse-input input)
+          output (computer a program)]
+      (str/join "," output)))
+#+end_src
+
+And =computer= is the banger. Check [[https://adventofcode.com/2024/day/17][the puzzle instructions]] for what all operations do. Note that they can be seen as bitshifts rather than divisions. The =combo= map takes care of the combo operator logic.
+
+#+begin_src clojure +n 1 :results silent
+  (defn computer [a program]
+    (loop [i 0
+           a a
+           b 0
+           c 0
+           output []]
+      (if (>= i (count program))
+        output
+        (let [combo {0 0, 1 1, 2 2, 3 3, 4 a, 5 b, 6 c}
+              [opcode op] (nth program i)]
+          (condp = opcode
+            0 (recur (inc i) (bit-shift-right a (combo op)) b c output)
+            1 (recur (inc i) a (bit-xor b op) c output)
+            2 (recur (inc i) a (mod (combo op) 8) c output)
+            3 (recur (if (zero? a) (inc i) op) a b c output)
+            4 (recur (inc i) a (bit-xor b c) c output)
+            5 (recur (inc i) a b c (conj output (mod (combo op) 8)))
+            6 (recur (inc i) a (bit-shift-right a (combo op)) c output)
+            7 (recur (inc i) a b (bit-shift-right a (combo op)) output))))))
+#+end_src
+
+Finally, =parse-input= is perhaps a bit ugly, but since we only care about register =A=, we just look for that and ignore the rest. We output a vector with element 1 being the =A= register, and element 2 is the program vector, which looks like this: =[(0 1) (5 4) (3 0)]=: =(operation operand)=-pairs.
+
+#+begin_src clojure +n 1 :results silent
+  (defn parse-input [puzzle]
+    (let [[registers program] (str/split puzzle #"\n\n")
+          rega (last (re-find #"Register A: (\d+)" registers))
+          program (last (re-find #"Program: ([\d,]+)" program))]
+      [(Integer/parseInt rega)
+       (->> (str/split program #",")
+                       (map read-string)
+                       (partition 2)
+                       vec)]))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp
+  (assert (= "4,6,3,5,6,3,5,2,1,0" (p1 example)))
+  (def input (slurp "inputs/17"))
+  (time (p1 input))
+#+end_src
+
+#+RESULTS:
+: "Elapsed time: 0.170643 msecs"
+: "1,6,7,4,3,0,5,0,6"
+: 
+
+** Part 2
+Now, we need to find out what input register makes the computer return an output that is equal to the program itself. I like it, strange loops vibes. For example, the program below:
+
+#+name: testinput17-2
+#+begin_example
+Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0
+#+end_example
+
+Will output =0,3,5,4,3,0= if the input register is *117440*. We need to find the /lowest register value/ for which the computer outputs its own program. We could brute-force this, but I tried that for a couple of minutes and have a feeling that we're going to have do something more intelligent.
+
+If you take a look at the example input, you'll see that the program does this:
+1. bit-shift =A= left by 3 bits (divide by 8).
+2. output =A % 8=.
+3. if =A > 0=, go back to step 1.
+
+This means that we can try a number, and see what the program outputs. If we initialize =A= to something below =8=, the output is of course =0= (since it's bit-shifted to the left by 3 bits). If =A= is =8=, the output is =[1 0]=. Look for a minute at the code below:
+#+begin_src clojure :results output
+  (defn example-program [a]
+    (str "Register A: " a "
+
+  Program: 0,3,5,4,3,0"))
+
+  (for [x (range 0 208 8)]
+    (println [x (p1 (example-program x))]))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+[0 0]
+[8 1,0]
+[16 2,0]
+[24 3,0]
+[32 4,0]
+[40 5,0]
+[48 6,0]
+[56 7,0]
+[64 0,1,0]
+[72 1,1,0]
+[80 2,1,0]
+[88 3,1,0]
+[96 4,1,0]
+[104 5,1,0]
+[112 6,1,0]
+[120 7,1,0]
+[128 0,2,0]
+[136 1,2,0]
+[144 2,2,0]
+[152 3,2,0]
+[160 4,2,0]
+[168 5,2,0]
+[176 6,2,0]
+[184 7,2,0]
+[192 0,3,0]
+[200 1,3,0]
+#+end_example
+
+Now that's interesting! Looking at the example above, we see that we don't have to try all possible register values, but we can do something more intellingent:
+
+Start with the number =res= (initially zero) and run it in the program. If the program result is not equal to the last element of our target program, increment it by =1= and try again. If it is equal, save =res= and continue with the next element. To do so, bit-shift =res= to the left by 3 bits (or multiply by 8): save =res * 8=. Now do the same for the second-to-last element: try =res * 8= in our program: if not equal: try =res * 8 + 1=, if equal: bit-shift again: save =res * 8 * 8=. Continue until we have our desired =res=.
+
+In our implementation below, we also bitshift =res= if we find our last element. That's actually one shift too many and therefore means that we have to bitshift back once again when we return =res=.
+
+#+begin_src clojure +n 1 :results silent
+  (defn p2 [input]
+    (let [[_ program] (parse-input input)
+          goal (flatten program)]
+      (loop [res 0
+             n 0
+             i 0]
+        (if (>= i (count goal))
+          (bit-shift-right res 3)
+          (let [target (take-last (inc i) goal)
+                current (take (inc i) (computer (+ res n) program))]
+            (if (= target current)
+              (recur (* (+ res n) 8) 0 (inc i))
+              (recur res (inc n) i)))))))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :var example=testinput17-2
+  (assert (= 117440 (p2 example)))
+  (time (p2 input))
+#+end_src
+
+#+RESULTS:
+: "Elapsed time: 43.553595 msecs"
+: 216148338630253
+: 
+
+#+LATEX: \clearpage
