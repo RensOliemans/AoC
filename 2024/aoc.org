@@ -2010,104 +2010,37 @@ We need to find out what the first time a /Christmas tree/ appears in the grid. 
 - A horizontal pattern appeared on step =18= and reappears every =103= steps.
 - A vertical pattern appeared on step =77= and reappears every =101= steps.
 
-If we find out when these appear at the same time, we surely find the christmas tree. So we need to find whole numbers {{{math(x, y)}}} for which {{{math(18 + 103x = 77 + 101y)}}}. In this case.
+If we find out when these appear at the same time, we surely find the christmas tree. So we need to find whole numbers {{{math(x, y)}}} for which {{{math(18 + 103x = 77 + 101y)}}}. In other words, we need to solve the formula {{{math(101y + 59 = 0 \bmod 103.)}}} You can throw it in [[https://www.wolframalpha.com/input?i=nsolve%28101y+%2B+59+mod+103+%3D+0%29][WolframAlpha]] and get a result (take the first natural number), or I can quickly brute-force it.
 
-#+begin_src python -n -r :results silent
-  import time
-  import re
-  from pprint import pprint
-  from collections import defaultdict
-  from functools import reduce
-
-  WIDTH = 101
-  LENGTH = 103
-
-
-  with open("inputs/14") as f:
-      puzzle = f.read()
-
-  def p1(puzzle):
-      robots = puzzle.strip().split('\n')
-      locations = [find_location(robot, 100, WIDTH, LENGTH) for robot in robots]
-      return count_in_quadrants(locations)
-
-  def find_location(robot, steps, width, length) -> tuple[int]:
-      pattern = r"p=(\d+),(\d+) v=(-?\d+),(-?\d+)"
-      x, y, dx, dy = map(int, re.match(pattern, robot).groups())
-      return ((x + dx * steps) % width,
-              (y + dy * steps) % length)
-
-
-  def product(items: list[int]) -> int:
-      return reduce(lambda x, y: x * y, items)
-
-
-  def count_in_quadrants(locations: list[tuple[int]]) -> int:
-      quads = defaultdict(int)
-      for location in locations:
-          quad = quadrant(location)
-          if quad:
-              quads[quad] += 1
-      return product(quads.values())
-
-  def quadrant(location: tuple[int]) -> int:
-      x, y = location
-      midx, midy = (WIDTH + 1) / 2 - 1, (LENGTH + 1) / 2 - 1
-      if not (x == midx or y == midy):
-          return (int(x / (midx + 1)), int(y / (midy + 1)))
-
-
-  def p2(puzzle):
-      pattern = r"p=(\d+),(\d+) v=(-?\d+),(-?\d+)"
-      robots = [map(int, re.match(pattern, robot).groups())
-                for robot in puzzle.strip().split('\n')]
-      loop = 10403
-      i = 8528
-      while True:
-          print(i)
-          print_grid((seconds(*robot, i) for robot in robots))
-
-          i += loop
-          input()
-
-
-
-  def seconds(x, y, dx, dy, seconds):
-      return ((x + dx * seconds) % WIDTH, (y + dy * seconds) % LENGTH, dx, dy)
-
-
-  def print_grid(robots):
-      robots = {(x, y) for x, y, _, _ in robots}
-      for row in range(LENGTH):
-          for col in range(WIDTH):
-              if (col, row) in robots:
-                  print('#', end='')
-              else:
-                  print('.', end='')
-          print()
+#+begin_src clojure +n 1
+  (let [x 101 y 103
+        startx 77
+        starty 18]
+    (->> (range y)
+         (filter #(= 0 (mod (+ (* x %) (- startx starty)) y)))
+         first))
 #+end_src
 
 #+RESULTS:
+: 81
 
-#+begin_src python :results output
-  def find_convergence(hor, vert):
-      hor = [hor]
-      vert = [vert]
-      while True:
-          new_hor = hor[-1] + 103
-          hor.append(new_hor)
-          new_vert = vert[-1] + 101
-          vert.append(new_vert)
-          if new_hor in vert:
-              yield new_hor
-          if new_vert in hor:
-              yield new_vert
-
-  n = find_convergence(18, 77)
-  print(next(n))
+#+begin_src clojure +n 1
+  (+ 77 (* 101 81))
 #+end_src
 
 #+RESULTS:
+: 8258
+
+And let's verify that this is indeed correct:
+
+#+begin_src clojure :results output :tangle no
+  (let [ysolution (/ (- 8258 18) 103)]
+    (println ysolution)
+    (println (+ 18 (* 103 ysolution))))
+#+end_src
+
+#+RESULTS:
+: 80
 : 8258
 
 #+LATEX: \clearpage
@@ -2159,7 +2092,7 @@ At the end of the instructions, the example above looks like this:
 ##########
 #+end_example
 
-After which we have to perform the following calculation: {{{math(100 \cdot x_p + y_p, \forall p \in \text{Points})}}}. This gives us, for the example input, a sum of =10092=.
+After which we have to perform the following calculation: {{{math(100 \cdot x_b + y_b\, \forall b \in \mathcal{B},)}}} where {{{math(\mathcal{B})}}} is the set of Boxes, in the input denoted as =O=. This gives us *10092* for the example input.
 
 We're going to follow the instructions via =follow-instructions=, which just iterates over the instructions until they're empty and calls =move-in-grid= for each one, which returns the updated grid and a new location.
 
