@@ -2906,3 +2906,104 @@ This is very handy, but we need to think for a second how to use it. ~(p1 input 
 We might optimize this: right now we parse the constant input each time we try out a new element. However, I enjoy running =p1= and =p2= with the raw puzzle input, and that means that =p1= will have to do its own parsing. Since it runs comfortably in less than a second I'm fine by it.
 
 #+LATEX: \clearpage
+* Day 19
+:PROPERTIES:
+:header-args: :tangle src/day19.clj :exports both
+:header-args:clojure: :session *clojure-19*
+:END:
+
+** Part 1
+Let's recap for a minute. Our chief objective is to find the Chief Historian because he's necessary for the big Christmas sleigh launch. He has been missing for months, so it might be something serious. His family is purportedly extremely anxious about his life.
+
+We find ourselves on a hot spring island, and we want to visit an onsen! Unfortunately, they won't accept our money, but they do tell us that if we're able to appropriately arrange their towels, we can enter for free! Let's embark on this important journey.
+
+#+name: testinput19
+#+begin_example
+r, wr, b, g, bwu, rb, gb, br
+
+brwrr
+bggr
+gbbr
+rrbgbr
+ubwu
+bwurrg
+brgr
+bbrgwb
+#+end_example
+
+Above is our example puzzle input, starting with a list of towels, and followed by a list of designs. Our objective is to find out how many designs we can create with the given towels.
+
+This lends itself nicely to a recursive solution (given some [[https://clojuredocs.org/clojure.core/memoize][memoization]]), so let's do that. First, the bulk of today: =can-be-made?=:
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.19
+    (:require [clojure.string :as str]))
+
+  (defn can-be-made? [towels design]
+    (if (empty? design)
+      true
+      (some #(and (str/starts-with? design %)
+                  (can-be-made? towels (subs design (count %))))
+            towels)))
+
+  (def can-be-made? (memoize can-be-made?))
+#+end_src
+
+Quite simple, and this makes the rest of today a piece of cake.
+
+#+begin_src clojure +n 1 :results silent
+  (defn parse-input [input]
+    (let [[towels designs] (str/split input #"\n\n")]
+      [(str/split towels #", ")
+       (str/split designs #"\n")]))
+
+  (defn p1 [input]
+    (let [[towels designs] (parse-input input)]
+      (->> designs
+           (filter #(can-be-made? towels %))
+           count)))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :var example=testinput19 :cache yes
+  (assert (= 6 (p1 example)))
+  (def input (slurp "inputs/19"))
+  (time (p1 input))
+#+end_src
+
+#+RESULTS[e46eac29c4ad79af9f9d76921d5eab506d8e6661]:
+: "Elapsed time: 164.75102 msecs"
+: 330
+: 
+
+** Part 2
+For Part Two, we need to find with /how many possible arrangements/ each design can be created. We use a very similar function, except that we don't have the luxury of returning early when =some= of our towel arrangement already filled up the design.
+
+#+begin_src clojure +n 1 :results silent
+  (defn count-possibilities [towels design]
+    (if (empty? design)
+      1
+      (->> towels
+           (filter #(str/starts-with? design %))
+           (map #(count-possibilities towels (subs design (count %))))
+           (reduce +))))
+
+  (def count-possibilities (memoize count-possibilities))
+
+  (defn p2 [input]
+    (let [[towels designs] (parse-input input)]
+      (->> designs
+           (map #(count-possibilities towels %))
+           (reduce +))))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :var example=testinput19 :cache yes
+  (assert (= 16 (p2 example)))
+  (time (p2 input))
+#+end_src
+
+#+RESULTS[8a270f549fd4d792b5442f846434d6ee0f3ebca3]:
+: "Elapsed time: 430.049032 msecs"
+: 950763269786650
+: 
+
+#+LATEX: \clearpage
