@@ -20,7 +20,8 @@ I define some common functions in =aoc.util=, mostly related to parsing the inpu
 
 #+begin_src clojure -n -r
   (ns aoc.util
-    (:require [clojure.string :as str]))
+    (:require [clojure.string :as str])
+    (:require [clojure.data.priority-map :refer [priority-map]]))
 #+end_src
 
 ** Files
@@ -161,6 +162,68 @@ For example:
 
 #+RESULTS:
 : ([0 4] [0 5] [1 4] [2 2] [2 4] [3 9] [4 0] [4 6] [5 0] [5 1])
+: 
+
+It's [[*Day 18][sometimes]] useful to convert a grid to a graph: a mapping of nodes in a 2d grid to their cardinal neighbours. AoC seems to have the standard notation that a =#= is a wall in the grid, so we don't connect those nodes.
+#+begin_src clojure +n 1
+  (defn grid-to-graph [grid]
+    (letfn [(neighbours [grid node]
+              (->> (map aoc.util/move aoc.util/cardinal-directions (repeat node))
+                   (filter #(= \. (get-in grid %)))
+                   (map #(vector % 1))
+                   (into {})))]
+      (let [coords (for [x (range (count grid))
+                         y (range (count (first grid)))]
+                     [x y])]
+        (->> coords
+             (filter #(not= \# (get-in grid %)))           
+             (map #(vector % (neighbours grid %)))
+             (into {})))))
+#+end_src
+
+** Dijkstra
+I got a lot of inspiration from [[https://github.com/dandorman/dijkstra-clj/blob/01a8907baff42f521553fa1e953fb3da6a1008ca/src/dijkstra/main.clj][dandormans implementation]], especially the way they keep track of the routes, which contains =parent= and =weight= in one.
+#+begin_src clojure +n 1
+  (defn relax [routes node node-weight neighbour neighbour-weight]
+    (let [weight (+ node-weight neighbour-weight)]
+      (cond-> routes
+        (< weight (get-in routes [neighbour :weight] ##Inf))
+        (assoc neighbour {:parent node :weight weight}))))
+
+  (defn dijkstra
+    [graph src]
+    (loop [q (priority-map src 0)
+           routes {src {:parent nil :weight 0}}
+           visited #{src}]
+      (if-let [node (first q)]
+        (let [node (key node)
+              q (pop q)
+              weight (get-in routes [node :weight] 0)
+              neighbours (get graph node)
+              routes (reduce-kv (fn [routes neighbour neighbour-weight]
+                                  (relax routes
+                                         node weight
+                                         neighbour neighbour-weight))
+                                routes
+                                neighbours)
+              neighbours (-> (filter #(not (contains? visited (key %))) neighbours)
+                             (update-vals #(+ % weight)))]
+          (recur (into q neighbours) routes (conj visited node)))
+        routes)))
+#+end_src
+
+Use it like this:
+#+begin_src clojure :tangle no :results pp replace :exports both
+  (let [result (dijkstra {:start {:a 1 :b 1}
+                          :a {:start 1 :c 1}
+                          :b {:start 1 :c 1}
+                          :c {:a 1 :b 1}}
+                         :start)]
+    (:c result))
+#+end_src
+
+#+RESULTS:
+: {:parent :b, :weight 2}
 : 
 
 #+LATEX: \clearpage
@@ -684,12 +747,12 @@ and then merge identical keys with [[https://clojuredocs.org/clojure.core/merge-
 #+end_src
 
 Verifying that this next result is correct is left as an exercise for the reader, but let's test it out on the example input:
-#+begin_src clojure :results pp :tangle no :var example=testinput5
+#+begin_src clojure :results pp :tangle no :var example=testinput5 :cache yes
   (let [[orderings _ _] (parse-input example)]
     (build-dependency-graph orderings))
 #+end_src
 
-#+RESULTS:
+#+RESULTS[deac62ea997bfec65119a05ca7c4906241179d37]:
 : {"61" ["97" "47" "75"],
 :  "47" ["97" "75"],
 :  "53" ["47" "75" "61" "97"],
@@ -1628,6 +1691,9 @@ And now it just so happens that Part Two is Part One, except for *75 blinks*. Th
 : 
 
 #+LATEX: \clearpage
+
+* Day 12
+Haven't done this in literate yet: see [[file:day12.py::import time][day12.py]].
 * Day 13
 :PROPERTIES:
 :header-args: :tangle src/day13.py :exports both
@@ -2194,15 +2260,15 @@ We use two helper functions:
            (move location direction)]))))
 #+end_src
 
-#+begin_src clojure +n 1 :results pp :cache yes
+#+begin_src clojure +n 1 :results pp :var example=testinput15 :cache yes
   (assert = (10092 (p1 example)))
   (def input (slurp "inputs/15"))
   (time (p1 input))
 #+end_src
 
 #+RESULTS[3c793a7e385f7f0ebfa6c8b3640700862f9d4ede]:
-: "Elapsed time: 186.722449 msecs"
-: 1471826
+: "Elapsed time: 77.573369 msecs"
+: 1453699
 : 
 
 ** Part 2
@@ -2307,13 +2373,13 @@ Let's focus on east and west first, since that is easiest.
         grid)))
 #+end_src
 
-#+begin_src clojure +n 1 :results pp :cache yes
+#+begin_src clojure +n 1 :results pp :var example=testinput15 :cache yes
   (assert (= 9021 (p2 example)))
   (time (p2 input))
 #+end_src
 
-#+RESULTS[e8f9146a8296feb4ee627ae87ed0c3fd80ab5b33]:
-: "Elapsed time: 169.494403 msecs"
+#+RESULTS[7d4317f2b8295adc6ae8b0c89372719cc9985475]:
+: "Elapsed time: 148.803022 msecs"
 : 1457703
 : 
 
@@ -2600,14 +2666,14 @@ Finally, =parse-input= is perhaps a bit ugly, but since we only care about regis
                        vec)]))
 #+end_src
 
-#+begin_src clojure +n 1 :results pp
+#+begin_src clojure +n 1 :results pp :var example=testinput17
   (assert (= "4,6,3,5,6,3,5,2,1,0" (p1 example)))
   (def input (slurp "inputs/17"))
   (time (p1 input))
 #+end_src
 
 #+RESULTS:
-: "Elapsed time: 0.170643 msecs"
+: "Elapsed time: 0.367492 msecs"
 : "1,6,7,4,3,0,5,0,6"
 : 
 
@@ -2693,14 +2759,150 @@ In our implementation below, we also bitshift =res= if we find our last element.
               (recur res (inc n) i)))))))
 #+end_src
 
-#+begin_src clojure +n 1 :results pp :var example=testinput17-2
+#+begin_src clojure +n 1 :results pp :var example=testinput17-2 :cache yes
   (assert (= 117440 (p2 example)))
   (time (p2 input))
 #+end_src
 
-#+RESULTS:
-: "Elapsed time: 43.553595 msecs"
+#+RESULTS[f5ecfd4c32c11981e37fbc6549d3235714c86f0c]:
+: "Elapsed time: 106.573594 msecs"
 : 216148338630253
 : 
+
+#+LATEX: \clearpage
+* Day 18
+:PROPERTIES:
+:header-args: :tangle src/day18.clj :exports both
+:header-args:clojure: :session *clojure-18*
+:END:
+
+** Part 1
+Puzzle input:
+#+name: testinput18
+#+begin_example
+5,4
+4,2
+4,5
+3,0
+2,1
+6,3
+2,4
+1,5
+0,6
+3,3
+2,6
+5,1
+1,2
+5,5
+2,5
+6,5
+1,4
+0,4
+6,4
+1,1
+6,1
+1,0
+0,5
+1,6
+2,0
+#+end_example
+
+The idea is that these are =X,Y= coordinates of walls that fall down in a grid of size =71x71=. We take the first =1024= walls, put them in the grid, and find the shortest path between =[0 0]= and =[70 70]=.
+
+Pretty simple, especially now that we've added a [[*Dijkstra][Dijkstra]] algorithm in Utils. First, let's parse the input and create a grid with walls in the correct spot. When parsing the input, we take care to reverse each element, since the coordinates above are =X,Y=, but we naturally access the grid via =Y,X=.
+
+#+begin_src clojure -n -r :results silent
+  (ns aoc.18
+    (:require [clojure.string :as str]))
+
+  (defn parse-input [input]
+    (->> (str/split input #"\n")
+         (map #(str/split % #","))
+         (map #(map Integer/parseInt %))
+         (map reverse)))
+#+end_src
+
+Creating the grid is rather straightforward: add a =.= everywhere first, add =#= later.
+#+begin_src clojure +n 1 :results silent
+  (defn create-grid [input size steps]
+    (let [grid (vec (repeat size (vec (repeat size \.))))
+          bytes (take steps input)]
+      (reduce (fn [g pos]
+                (assoc-in g pos \#))
+              grid
+              bytes)))
+#+end_src
+
+And =p1= is easy with our new Dijkstra:
+#+begin_src clojure +n 1 :results silent
+  (defn helper-dijkstra [input size steps]
+    (-> input
+        (create-grid size steps)
+        aoc.util/grid-to-graph
+        (aoc.util/dijkstra [0 0])))
+
+  (defn p1 [input size steps]
+    (-> input
+        parse-input
+        (helper-dijkstra size steps)
+        (get [(dec size) (dec size)])
+        :weight))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :var example=testinput18 :cache yes
+  (assert (= 22 (p1 example 7 12)))
+  (def input (slurp "inputs/18"))
+  (time (p1 input 71 1024))
+#+end_src
+
+#+RESULTS[8e2681beb1285a5603eb9da691f0ac3fab3fe7df]:
+: "Elapsed time: 201.257991 msecs"
+: 316
+: 
+
+** Part 2
+We need to find the first element after which we cannot find a route anymore. Binary search is good for this, and I decided to create a generic function that takes as input a sorted list and a predicate; ~(pred i)~ returns a boolean, and our =binarysearchp= returns the first =i= for which it returns =true=.
+
+There's an off-by-one error related to even/odd input lengths which made the result work on the testinput (len 25) and not on the real input (len 3450). I fixed it, and then it worked on the input but not on the testinput. My ugly workaround is that when the list has an even length, it instead returns the index of the found element =- 1=.
+
+#+begin_src clojure +n 1 :results silent
+  (defn binsearchp
+    "Returns the first index `i` in `list` for which `(pred i)` returns
+    true."
+    [list pred]
+    (loop [start 0
+           end (count list)]
+      (if (>= start end)
+        start
+        (let [i (quot (+ start end) 2)]
+          (if (pred i)
+            (recur (inc start) i)
+            (recur i (dec end)))))))
+#+end_src
+
+This is very handy, but we need to think for a second how to use it. ~(p1 input size 1024)~ returned the longest route on the grid after =1024= steps. If we input it for some step =i=, it returns =nil= if there is no such route, and finding that first =i= is the objective of Part Two. So, our predicate should return =true= if ~(p1 input size i)~ returns =nil=, and thus should be ~(fn [i] (nil? (p1 input size i)))~.
+
+#+begin_src clojure +n 1 :results silent
+  (defn p2 [input size]
+    (let [list (parse-input input)
+          pred (fn [i] (nil? (p1 input size i)))
+          idx (if (even? (count list))
+                (binsearchp list pred)
+                (dec (binsearchp list pred)))
+          [y x] (nth list idx)]
+      (str x "," y)))
+#+end_src
+
+#+begin_src clojure +n 1 :results pp :var example=testinput18 :cache yes
+  (assert (= "6,1" (p2 example 7)))
+  (time (p2 input 71))
+#+end_src
+
+#+RESULTS[23e10ad5e445325965c8acfde72052a5bf4f82b5]:
+: "Elapsed time: 330.052123 msecs"
+: "45,18"
+: 
+
+We might optimize this: right now we parse the constant input each time we try out a new element. However, I enjoy running =p1= and =p2= with the raw puzzle input, and that means that =p1= will have to do its own parsing. Since it runs comfortably in less than a second I'm fine by it.
 
 #+LATEX: \clearpage
