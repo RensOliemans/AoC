@@ -1,5 +1,12 @@
 (ns aoc.util.vec)
 
+;; https://stackoverflow.com/questions/10347315/matrix-transposition-in-clojure
+(defn transpose
+  "Transpose the given matrix `m` on the diagonal"
+  [m]
+  (apply mapv vector m))
+
+
 ;; Cardinal and intercardinal direction vectors
 ;; Using grid coordinates where y increases downward
 (def dir-nw [-1 -1])
