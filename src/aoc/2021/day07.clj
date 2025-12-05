@@ -16,18 +16,17 @@
   values around it ((dec n) (inc n)) to see what direction we should
   move."
   [input costfn]
-  (let [vals (sort (s/parse-ints input))
-        cnt (count vals)
+  (let [vals (s/parse-ints input)
         cost (partial costfn vals)]
     (loop [a 0
-           b cnt]
+           b (apply max vals)]
       (let [n (quot (+ a b) 2)
             val   (cost n)
             val-1 (cost (dec n))
             val+1 (cost (inc n))]
         (cond
           (= val (min val val-1 val+1)) val
-          (> val-1 val) (recur n cnt)
+          (> val-1 val) (recur n b)
           (> val+1 val) (recur a n))))))
 
 (defn part1 [input] (minimal-binary-search input regular-cost))
