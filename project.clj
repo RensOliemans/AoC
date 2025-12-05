@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [org.clojure/tools.cli "1.0.219"]]
   :main aoc.core
-  :repl-options {:init-ns aoc.core})
+  :repl-options {:init-ns aoc.core}
+  :jvm-opts ["-Djdk.attach.allowAttachSelf"])
