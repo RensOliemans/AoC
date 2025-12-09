@@ -16,7 +16,7 @@
 (defn part1 [input]
   (->> input
        s/parse-lines
-       (map s/parse-ints)
+       (mapv s/parse-ints)
        pairs
        (map (fn [[a b]] [(distance a b) a b]))
        sort
@@ -37,7 +37,7 @@
 (defn part2 [input]
   (let [boxes (->> input
                    s/parse-lines
-                   (map s/parse-ints))
+                   (mapv s/parse-ints))
         shortest-pairs (->> boxes
                             pairs
                             (map (fn [[a b]] [(distance a b) a b]))
