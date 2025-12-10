@@ -5,7 +5,8 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [org.clojure/tools.cli "1.0.219"]
-                 [org.clojure/math.combinatorics "0.3.0"]]
+                 [org.clojure/math.combinatorics "0.3.0"]
+                 [org.ojalgo/ojalgo "56.1.1"]]
   :main aoc.core
   :repl-options {:init-ns aoc.core}
   :jvm-opts ["-Djdk.attach.allowAttachSelf"])

@@ -2,14 +2,11 @@
   (:require [aoc.util.day :as d]
             [aoc.util.string :as s]
             [clojure.math.combinatorics :as combo]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import [org.ojalgo.optimisation ExpressionsBasedModel Variable]
+           [org.ojalgo.optimisation Optimisation$State]))
 
 (def input (d/day-input 2025 10))
-
-(def tinput "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
-[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
-")
 
 (defn- parse-line [line]
   (let [[indicator & buttons] (str/split line #" ")
@@ -62,5 +59,39 @@
        (map amount-indicator)
        (reduce +)))
 
+(defn- solve [buttons joltage]
+  (let [nb (count buttons)
+        nj (count joltage)
+        model (ExpressionsBasedModel.)]
+
+    (doseq [b (range nb)]
+      (doto (.addVariable model)
+        (.lower 0)
+        (.weight 1)
+        (.integer true)))
+
+    (doseq [j (range nj)]
+      (let [expr (.addExpression model)]
+        (.level expr (get joltage j))
+        (doseq [b (range nb)]
+          (when (some #{j} (get buttons b))
+            ;; connect button b to constraint j
+            (.set expr b 1)))))
+
+    (let [result (.minimise model)
+          state (.getState result)]
+      ;; (.intValue) sometimes get things wrong, 2.9999999994 becomes
+      ;; 2, round ourselves
+      (vec (for [i (range nb)]
+             (Math/round (.doubleValue (.get result i))))))))
+
 (defn part2 [input]
-  -1)
+  (let [problems
+        (->> input
+             s/parse-lines
+             (map parse-line))]
+    (->> problems
+         (pmap (fn [problem]
+                 (solve (vec (:buttons problem)) (:joltage problem))))
+         (map #(reduce + %))
+         (reduce +))))
