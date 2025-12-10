@@ -1,7 +1,7 @@
 (ns aoc.2025.day10
   (:require [aoc.util.day :as d]
             [aoc.util.string :as s]
-            [aoc.util.vec :as v]
+            [clojure.math.combinatorics :as combo]
             [clojure.string :as str]))
 
 (def input (d/day-input 2025 10))
@@ -13,7 +13,11 @@
 
 (defn- parse-line [line]
   (let [[indicator & buttons] (str/split line #" ")
-        joltage (last buttons)
+        indicator (-> indicator
+                      (str/replace #"\[" "")
+                      (str/replace #"\]" ""))
+        joltage (->> (last buttons)
+                     s/parse-ints)
         buttons (->> (butlast buttons)
                      (map s/parse-ints))]
     {:indicator indicator :buttons buttons :joltage joltage}))
@@ -41,13 +45,11 @@
   "Computes the minimum amount of button presses necessary to obtain a
   given indicator by brute-forcing every possible combination."
   [data]
-  (let [ind (-> (:indicator data)
-              (str/replace #"\[" "")
-              (str/replace #"\]" ""))
+  (let [ind (:indicator data)
         empty-ind (apply str (repeat (count ind) \.))]
 
     (loop [n 1]
-      (let [btns (v/combinations-with-replacement (:buttons data) n)]
+      (let [btns (combo/combinations (:buttons data) n)]
         (if (not (empty? (filter #(= ind (apply str (press-buttons empty-ind %)))
                                  btns)))
           n
@@ -59,3 +61,6 @@
        (map parse-line)
        (map amount-indicator)
        (reduce +)))
+
+(defn part2 [input]
+  -1)
