@@ -42,3 +42,14 @@
   [[(dec x) (dec y)] [x (dec y)] [(inc x) (dec y)]
    [(dec x) y]                   [(inc x) y]
    [(dec x) (inc y)] [x (inc y)] [(inc x) (inc y)]])
+
+(defn- tails [xs]
+  (when (seq xs)
+    (lazy-seq (cons xs (tails (rest xs))))))
+
+(defn combinations-with-replacement [xs k]
+  (if (zero? k)
+    '(())
+    (for [[h & t] (tails xs)
+          more (combinations-with-replacement (cons h t) (dec k))]
+      (cons h more))))
