@@ -35,6 +35,12 @@
   "The 4 cardinal direction vectors (up, right, down, left)."
   [dir-up dir-right dir-down dir-left])
 
+(defn cardinal-to
+  "Returns all 4 cardinal positions for a given position."
+  [[x y]]
+  [[(dec x) y] [(inc x) y]
+   [x (dec y)] [x (inc y)]])
+
 (defn adjacent-to
   "Returns all 8 adjacent positions (including diagonals) for a given position.
 
