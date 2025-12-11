@@ -12,8 +12,11 @@
 (defn parse-blocks [input]
   (str/split input #"\n\n"))
 
-(defn parse-lines [input]
-  (str/split-lines input))
+(defn parse-lines
+  ([input] (parse-lines input identity))
+  ([input line-fn]
+   (->> (str/split-lines input)
+        (map line-fn))))
 
 (defn parse-csvs [input]
   (str/split input #","))
