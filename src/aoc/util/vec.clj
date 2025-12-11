@@ -6,6 +6,8 @@
   [m]
   (apply mapv vector m))
 
+(defn invert-map-of-sets [m]
+  (reduce (fn [a [k v]] (assoc a k (conj (get a k #{}) v))) {} (for [[k s] m v s] [v k])))
 
 ;; Cardinal and intercardinal direction vectors
 ;; Using grid coordinates where y increases downward
