@@ -8,3 +8,6 @@
 
 # Advent of Code solutions
 
+I obtained the structure of the program, as well as some util
+functions, from [Darren
+Austin](https://github.com/darrenaustin/advent-of-code).
