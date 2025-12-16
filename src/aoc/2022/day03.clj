@@ -23,7 +23,7 @@
   (->> (s/parse-lines input)
        (map vec)
        (map split-in-two)
-       (mapcat (fn [[one two]] (common-items one two)))
+       (mapcat #(apply common-items %))
        (map char-to-num)
        (reduce +)))
 
@@ -31,6 +31,6 @@
   (->> (s/parse-lines input)
        (map vec)
        (partition 3)
-       (mapcat (fn [[one two three]] (common-items one two three)))
+       (mapcat #(apply common-items %))
        (map char-to-num)
        (reduce +)))
