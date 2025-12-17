@@ -5,6 +5,9 @@
 
 (def input (d/day-input 2022 07))
 
+(defn- pts [pwd]
+  (apply str (reverse pwd)))
+
 (defn- directory-sizes [input]
   (let [[pwd dir-sizes]
         (reduce
@@ -16,8 +19,9 @@
              #"\$ cd /" [(conj pwd "/") (assoc dir-sizes "/" 0)]
              #"\$ cd ([\w]+)"
              :>> (fn [[_ dir]]
-                   (let [d (str "/" dir)]
-                     [(conj pwd d) (assoc dir-sizes (apply str (conj pwd d)) 0)]))
+                   (let [d (str dir "/")
+                         pwd' (conj pwd d)]
+                     [pwd' (assoc dir-sizes (pts pwd') 0)]))
              #"([0-9]+) .+"
              :>> (fn [[_ filesize-str]]
                    (let [filesize (parse-long filesize-str)]
@@ -29,7 +33,7 @@
                         (if (empty? pwd')
                           sizes
                           (recur
-                           (update sizes (apply str pwd') #(+ filesize %))
+                           (update sizes (pts pwd') #(+ filesize %))
                            (rest pwd'))))]))))
          ['() {}]
          (s/parse-lines input))]
