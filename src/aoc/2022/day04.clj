@@ -1,9 +1,7 @@
 (ns aoc.2022.day04
   (:require [aoc.util.day :as d]
             [aoc.util.string :as s]
-            [clojure.string :as str]
-            ;; [aoc.util.vec :as v]
-	    ))
+            [clojure.string :as str]))
 
 (def input (d/day-input 2022 04))
 
