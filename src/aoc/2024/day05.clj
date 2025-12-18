@@ -1,15 +1,13 @@
 (ns aoc.2024.day05
   (:require [aoc.util.day :as d]
-            [clojure.string :as str]
-            ;; [aoc.util.string :as s]
-            ;; [aoc.util.vec :as v]
-	    ))
+            [aoc.util.string :as s]
+            [clojure.string :as str]))
 
 (def input (d/day-input 2024 05))
 
 (defn dep-sort
   "Sort a list of strings based on a dependency map.
-     The map defines which elements should come after others."
+  The map defines which elements should come after others."
   [dep-graph update]
   (let [graph (reduce (fn [acc item]
                         (assoc acc item 
@@ -21,6 +19,8 @@
                       (count (local-deps deps))))
                   update))))
 
+(defn dep-sorted? [dependency-graph update]
+  (= update (dep-sort dependency-graph update)))
 
 (defn build-dependency-graph
   [orderings]
@@ -29,27 +29,22 @@
                          (map #(hash-map (second %), [(first %)])))]
     (apply (partial merge-with into) order-pairs)))
 
-(defn dep-sorted? [dependency-graph update]
-  (= update (dep-sort dependency-graph update)))
-
 (defn middle-num
-  "Finds the middle string in a list of string, and parses it to a
-    number. Assumes the length of the list list is odd."
+  "Finds the middle string in a list of string, and parse it to a
+  number. Assumes the length of the list list is odd."
   [update]
   (read-string (nth update (/ (count update) 2))))
 
 (defn parse-input
   "Parses an input string and returns three useful objects.
-    The first obj is a list of orderings, strings of type \"A|B\".
-    The second obj is a list of updates, each one a list of strings.
-    The third obj is a dependency graph, a map."
+  The first obj is a list of orderings, strings of type \"A|B\". The
+  second obj is a list of updates, each one a list of strings. The
+  third obj is a dependency graph, a map."
   [input]
-  (let [[orderings updates] (str/split input #"\n\n")
-        orderings (str/split orderings #"\n")
-        updates (str/split updates #"\n")
-        updates (map #(str/split % #",") updates)
-        dependency-graph (build-dependency-graph orderings)]
-    [orderings updates dependency-graph]))
+  (let [[orderings updates] (->> (s/parse-blocks input) (map s/parse-lines))]
+    [orderings
+     (map #(str/split % #",") updates)
+     (build-dependency-graph orderings)]))
 
 (defn part1 [input]
   (let [[orderings updates dep-graph] (parse-input input)
