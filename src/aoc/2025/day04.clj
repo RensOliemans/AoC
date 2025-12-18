@@ -34,5 +34,3 @@
                    grid*
                    to-remove)
            (+ removed (count to-remove))))))))
-
-(part2 input)

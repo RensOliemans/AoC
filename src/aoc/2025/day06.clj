@@ -8,20 +8,16 @@
 
 (defn- result
   [cols ops]
-  (loop [total 0
-         ns cols
-         ops ops]
-    (if (empty? ns)
-      total
-      (let [n (first ns)
-            op (first ops)
-            col-result
-            (condp = op
-              "*" (reduce * n)
-              "+" (reduce + n))]
-        (recur (+ total col-result)
-               (rest ns)
-               (rest ops))))))
+  (reduce
+   (fn [acc [col op]]
+     (+ acc
+        (condp = op
+          "*" (reduce * col)
+          "+" (reduce + col)
+          ))
+     )
+   0
+   (zipmap cols ops)))
 
 (defn part1 [input]
   (let [inp (s/parse-lines input)
@@ -58,4 +54,3 @@
                      \+ (reduce + (map #(first (s/parse-ints (str/join %))) row))))))
             0
             inp)))
-
