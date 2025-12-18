@@ -346,4 +346,39 @@ Still, any arbitrary number fails for some input, so I've opted to not do this.
 * [[https://adventofcode.com/2024/day/7][Day 7: Bridge Repair]]
 
 ** Part 1
+We effectively reduce twice: once to reduce all numbers and once to reduce all possible operators. I do the last one in a =mapcat=, but same stuff, more or less. =is-correct?= returns true if the test result can be obtained by any of the input numbers.
 
+#+begin_src clojure
+  (defn is-correct? [[result & numbers] operators]
+    (let [possibilities
+          (reduce (fn [acc i]
+                    (mapcat (fn [n] (map #(% n i) operators)) acc))
+                  [(first numbers)]
+                  (rest numbers))]
+      (some #(= result %) possibilities)))
+
+  (defn- sum-correct-equations [input operators]
+    (->> (s/parse-lines input)
+         (map s/parse-ints)
+         (filter #(is-correct? % operators))
+         (map first)
+         (reduce +)))
+
+  (defn part1 [input]
+    (let [operators [#(* %1 %2)
+                     #(+ %1 %2)]]
+      (sum-correct-equations input operators)))
+#+end_src
+
+** Part 2
+We introduce a third operator: concatenation. Part two is effectively identical, but for the third operator:
+
+#+begin_src clojure
+  (defn part2 [input]
+    (let [operators [#(* %1 %2)
+                     #(+ %1 %2)
+                     #(Long/parseLong (str %1 %2))]]
+      (sum-correct-equations input operators)))
+#+end_src
+
+This one takes quite long: nearly three seconds. That's not too nice.
