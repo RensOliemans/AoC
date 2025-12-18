@@ -8,6 +8,7 @@ website:
     search: false
     contents:
     - 2025.qmd
+    - 2024.qmd
   page-footer:
     center:
       - text: "Front page"

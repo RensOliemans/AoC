@@ -1,0 +1,249 @@
+:PROPERTIES:
+:header-args: :eval no :exports both
+:END:
+#+TITLE: AoC 2024
+#+SUBTITLE: My solutions for Advent of Code 2024
+#+AUTHOR: Rens Oliemans
+#+OPTIONS: toc:nil ^:t num:nil
+
+Welcome to my solution page for [[https://adventofcode.com/2024][Advent of Code 2024]]. You can find [[https://codeberg.org/RensOliemans/AoC][the git repo here]].
+
+* [[https://adventofcode.com/2024/day/1][Day 1: Historian Hysteria]]
+** Part 1
+We have a list of pairs of numbers, and we need to pair the smallest left number with the smallest right number, second-smallest left with second-smallest right, etc. Idea: transpose, sort both lists, transpose again, and compute.
+
+#+begin_src clojure
+  (defn part1 [input]
+    (->> (s/parse-lines input)
+         (map s/parse-ints)
+         v/transpose
+         (map sort)
+         v/transpose
+         (map #(abs (- (first %) (second %))))
+         (reduce +)))
+#+end_src
+** Part 2
+This is easy with the fn =frequencies=:
+
+#+begin_src clojure
+  (defn part2 [input]
+    (let [input (v/transpose (map s/parse-ints (s/parse-lines input)))
+          one (first input)
+          freqs (frequencies (second input))]
+      (->> one
+           (map #(* % (freqs % 0)))
+           (reduce +))))
+#+end_src
+
+* [[https://adventofcode.com/2024/day/2][Day 2: Red-Nosed Reports]]
+
+** Part 1
+=(partition 2 1)= finds all pairs, and then we can just compute the difference and return whether each difference is between 1 and 3 (inclusive), and each difference has the same parity.
+
+#+begin_src clojure
+  (defn diffs [record]
+    (->> record
+         (partition 2 1)
+         (mapv (fn [[a b]] (- b a)))))
+
+  (defn is-safe? [record]
+    (let [differences (diffs record)]
+      (and (every? #(<= 1 (abs %) 3) differences)
+           (apply = (map pos? differences)))))
+
+  (defn part1 [input]
+    (->> (s/parse-lines input s/parse-ints)
+         (filter is-safe?)
+         (count)))
+#+end_src
+
+** Part 2
+Remove each level one by one and check if the record is safe then. Not the most efficient, but simple and fast enough (~50msec):
+
+#+begin_src clojure
+  (defn drop-nth [coll n]
+    (keep-indexed #(if (not= %1 n) %2) coll))
+
+  (defn dampened-is-safe? [record]
+    (some is-safe? (map #(drop-nth record %)
+                        (range (count record)))))
+
+  (defn part2 [input]
+    (->> (s/parse-lines input s/parse-ints)
+         (filter dampened-is-safe?)
+         (count)))
+#+end_src
+
+* [[https://adventofcode.com/2024/day/3][Day 3: Mull It Over]]
+
+** Part 1
+regex on ="mul\((\d+),(\d+)\)"=, multiply each result and sum.
+
+#+begin_src clojure
+  (defn part1 [input]
+    (->> (re-seq #"mul\((\d+),(\d+)\)" input)
+         (map (fn [[_ a b]] (* (Long/parseLong a)
+                               (Long/parseLong b))))
+         (reduce +)))
+#+end_src
+
+** Part 2
+=do()= enables instructions, =don't()= disables them. I started out doing a more complicated loop where I keep track of the current state (enabled/disabled). Instead, we just remove all text in between =don't()= and =do()= and re-run part one on this smaller input. In order to replace everything, don't forget to remove the newlines as well, as some =don't()/do()= pairs have newlines between them.
+
+#+begin_src clojure
+(defn part2 [input]
+  (let [inp (-> input
+                (str/replace #"\n" "")
+                (str/replace #"don't\(\).+?do\(\)" ""))]
+    (part1 inp)))
+#+end_src
+
+* [[https://adventofcode.com/2024/day/4][Day 4: Ceres Search]]
+
+** Part 1
+#+begin_src clojure
+  (defn is-xmas? "Does the grid `grid` contain the string \"XMAS\",
+     starting at `start` and going in `direction`?"
+    [grid start direction]
+    (loop [location start
+           chars (seq "XMAS")]
+      (if (empty? chars)
+        true
+        (if (not= (get-in grid location) (first chars))
+          false
+          (recur 
+           (mapv + location direction)
+           (rest chars))))))
+
+#+end_src
+
+This function does all the heavy lifting, for a given location and direction, finds whether the grid contains =XMAS= there.
+#+begin_src clojure
+  (defn is-xmas? "Does the grid `grid` contain the string \"XMAS\",
+   starting at `start` and going in `direction`?"
+    [grid start direction]
+    (loop [location start
+           chars (seq "XMAS")]
+      (if (empty? chars)
+        true
+        (if (not= (get grid location) (first chars))
+          false
+          (recur 
+           (mapv + location direction)
+           (rest chars))))))
+#+end_src
+
+All that remains is to do this for each =X= and for each direction (=v/adjacent-dirs=):
+#+begin_src clojure
+  (defn count-xmases-at [grid start directions]
+    (count (filter #(is-xmas? grid start %) directions)))
+
+  (defn part1 [input]
+    (let [grid (g/to-matrix input)
+          xs (g/locs-where grid #(= % \X))]
+      (->> xs
+           (map #(count-xmases-at grid % v/adjacent-dirs))
+           (reduce +))))
+#+end_src
+
+** Part 2
+For each =A= and for each diagonal direction, check whether there are exactly two =MAS=-es.
+#+begin_src clojure
+  (defn is-mas? [grid middle direction]
+    (let [opposite-direction (mapv #(* -1 %) direction)]
+      (and (= \M (get-in grid (mapv + middle direction)))
+           (= \S (get-in grid (mapv + middle opposite-direction))))))
+
+  (defn count-mases-at [grid middle directions]
+    (count (filter #(is-mas? grid middle %) directions)))
+
+  (defn part2 [input]
+    (let [grid (g/to-matrix input)
+          as (g/locs-where grid #(= % \A))]
+      (->> as
+           (map #(count-mases-at grid % v/diagonal-dirs))
+           (filter #(= % 2))
+           (count))))
+#+end_src
+
+* [[https://adventofcode.com/2024/day/5][Day 5: Print Queue]]
+
+** Part 1
+We can think of the input as a [[https://en.wikipedia.org/wiki/Directed_graph][directed graph]], where =29|13= leads to a vertex from =29= to =13=. We parse the input to obtain the orderings, updates and a dependency graph. Our solution requires us to find the middle number of all updates that are correctly-ordered. Here's the parsing and the shell of part 1:
+
+#+begin_src clojure
+  (defn parse-input
+    "Parses an input string and returns three useful objects.
+      The first obj is a list of orderings, strings of type \"A|B\".
+      The second obj is a list of updates, each one a list of strings.
+      The third obj is a dependency graph, a map."
+    [input]
+    (let [[orderings updates] (->> (s/parse-blocks input) (map s/parse-lines))]
+      [orderings
+       (map #(str/split % #",") updates)
+       (build-dependency-graph orderings)]))
+
+  (defn part1 [input]
+    (let [[orderings updates dep-graph] (parse-input input)
+          dep-sorted? (partial dep-sorted? dep-graph)]
+      (->> updates
+           (pmap #(list % (dep-sorted? %)))
+           (filter last)
+           (pmap first)
+           (pmap middle-num)
+           (reduce +))))
+#+end_src
+
+The above code relies on three functions not yet defined: =middle-num=, =dep-sorted?= and =build-dependency-graph=. =build-dependency-graph= and =middle-num= are relatively straightforward:
+
+#+begin_src clojure
+  (defn build-dependency-graph
+    [orderings]
+    (let [order-pairs (->> orderings
+                           (map #(str/split % #"\|"))
+                           (map #(hash-map (second %), [(first %)])))]
+      (apply (partial merge-with into) order-pairs)))
+
+  (defn middle-num
+    "Finds the middle string in a list of string, and parse it to a
+    number. Assumes the length of the list list is odd."
+    [update]
+    (read-string (nth update (/ (count update) 2))))
+#+end_src
+
+And the meat is in =dep-sorted?=, which tells us wheter an update is sorted, using a dependency graph as obtained from =build-dependency-graph=. It's 2025 at the time of writing and I forgot how it works, figuring this out is left as an exercise for the reader.
+
+#+begin_src clojure
+  (defn dep-sort
+    "Sort a list of strings based on a dependency map.
+    The map defines which elements should come after others."
+    [dep-graph update]
+    (let [graph (reduce (fn [acc item]
+                          (assoc acc item 
+                                 (set (get dep-graph item []))))
+                        {} update)
+          local-deps (fn [deps] (filter #(contains? (set update) %) deps))]
+      (vec (sort-by (fn [item]
+                      (let [deps (get dep-graph item [])]
+                        (count (local-deps deps))))
+                    update))))
+
+  (defn dep-sorted? [dependency-graph update]
+    (= update (dep-sort dependency-graph update)))
+#+end_src
+
+** Part 2
+This is now trivial, since we can now easily sort everything, filter the unsorted updates, and do the same computation:
+
+#+begin_src clojure
+  (defn part2 [input]
+    (let [[orderings updates deps] (parse-input input)
+          is-sorted? (partial dep-sorted? deps)
+          dep-sort (partial dep-sort deps)]
+      (->> updates
+           (pmap #(list % (dep-sort %)))
+           (filter #(not= (first %) (last %)))
+           (pmap last)
+           (pmap middle-num)
+           (reduce +))))
+#+end_src
