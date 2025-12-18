@@ -1,0 +1,4 @@
+#+TITLE: Advent of Code
+#+AUTHOR: Rens Oliemans
+
+Welcome! This site contains my solutions for [[https://adventofcode.com/][Advent of Code]], an advetn calender of programming puzzles made by [[https://was.tl/][Eric Wastl]]. Click on the individual years in the sidebar to see my solutions.
