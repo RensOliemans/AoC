@@ -14,12 +14,11 @@
      (inc (abs (- y y')))))
 
 (defn- largest-square [points]
-  (->> points
-       pairs
-       (map (fn [[a b]] [(size a b) a b]))
-       sort
-       last
-       first))
+  (reduce
+   (fn [m [a b]]
+     (max m (size a b)))
+   0
+   (pairs points)))
 
 (defn part1 [input]
   (->> input
