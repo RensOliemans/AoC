@@ -12,20 +12,24 @@
        (map (fn [[from & to]] [from to]))
        (into {})))
 
-(defn- count-paths-to-goal-dac-fft
-  ([m cur goal] (count-paths-to-goal-dac-fft m cur goal false false))
-  ([m cur goal dac fft]
-   (if (= cur goal)
-     (if (and dac fft) 1 0)
-     (let [neighbours (m cur)]
-       (reduce + (map #(count-paths-to-goal-dac-fft m % goal
-                                                    (or dac (= cur "dac"))
-                                                    (or fft (= cur "fft")))
-                      neighbours))))))
-(def count-paths-to-goal-dac-fft (memoize count-paths-to-goal-dac-fft))
+(defn- count-paths-to-goal
+  [m cur goal]
+  (if (= cur goal)
+    1
+    (let [neighbours (m cur)]
+      (reduce + (map #(count-paths-to-goal m % goal)
+                     neighbours)))))
+
+(def count-paths-to-goal (memoize count-paths-to-goal))
 
 (defn part1 [input]
-  (count-paths-to-goal-dac-fft (parse-input input) "you" "out" true true))
+  (count-paths-to-goal (parse-input input) "you" "out"))
 
 (defn part2 [input]
-  (count-paths-to-goal-dac-fft (parse-input input) "svr" "out"))
+  (let [g (parse-input input)
+        [first second] (if (pos? (count-paths-to-goal g "fft" "dac"))
+                         ["fft" "dac"]
+                         ["dac" "fft"])]
+    (* (count-paths-to-goal g "svr" first)
+       (count-paths-to-goal g first second)
+       (count-paths-to-goal g second "out"))))
