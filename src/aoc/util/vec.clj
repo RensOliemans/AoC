@@ -35,6 +35,10 @@
   "The 4 cardinal direction vectors (up, right, down, left)."
   [dir-up dir-right dir-down dir-left])
 
+(def diagonal-dirs
+  [dir-nw dir-ne
+   dir-sw dir-se])
+
 (defn cardinal-to
   "Returns all 4 cardinal positions for a given position."
   [[x y]]

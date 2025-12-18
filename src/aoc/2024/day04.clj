@@ -13,17 +13,17 @@
          chars (seq "XMAS")]
     (if (empty? chars)
       true
-      (if (not= (get grid location) (first chars))
+      (if (not= (get-in grid location) (first chars))
         false
         (recur 
-               (mapv + location direction)
-               (rest chars))))))
+         (mapv + location direction)
+         (rest chars))))))
 
 (defn count-xmases-at [grid start directions]
   (count (filter #(is-xmas? grid start %) directions)))
 
 (defn part1 [input]
-  (let [grid (g/parse-grid input)
+  (let [grid (g/to-matrix input)
         xs (g/locs-where grid #(= % \X))]
     (->> xs
          (map #(count-xmases-at grid % v/adjacent-dirs))
@@ -31,16 +31,16 @@
 
 (defn is-mas? [grid middle direction]
   (let [opposite-direction (mapv #(* -1 %) direction)]
-    (and (= \M (get grid (mapv + middle direction)))
-         (= \S (get grid (mapv + middle opposite-direction))))))
+    (and (= \M (get-in grid (mapv + middle direction)))
+         (= \S (get-in grid (mapv + middle opposite-direction))))))
 
 (defn count-mases-at [grid middle directions]
   (count (filter #(is-mas? grid middle %) directions)))
 
 (defn part2 [input]
-  (let [grid (g/parse-grid input)
+  (let [grid (g/to-matrix input)
         as (g/locs-where grid #(= % \A))]
     (->> as
-         (map #(count-mases-at grid % v/adjacent-dirs))
+         (map #(count-mases-at grid % v/diagonal-dirs))
          (filter #(= % 2))
          (count))))

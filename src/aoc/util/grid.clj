@@ -3,7 +3,7 @@
 
 (defn parse-grid-map
   "Parse a grid, optionally changing values"
-  ([input] (parse-grid input identity))
+  ([input] (parse-grid-map input identity))
   ([input value-fn]
    (let [lines (str/split-lines input)]
      (into {}
@@ -27,14 +27,10 @@
 
 (defn row [grid y] (nth grid y))
 
-(defn cell
-  ([grid [x y]] (nth (nth grid y) x))
-  ([grid [x y] not-found] (or (nth (nth grid y) x) not-found)))
-
 (defn locs-where
   "Finds the [row col] locations where pred holds in a grid."
   [grid pred]
   (for [y (range (height grid))
         x (range (width grid))
-        :when (pred (cell grid [x y]))]
+        :when (pred (get-in grid [x y]))]
     [x y]))
