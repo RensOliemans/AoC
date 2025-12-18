@@ -90,15 +90,13 @@ Regex with backtrace, match a number twice for part one
 #+end_src
 
 #+begin_src clojure
-  (defn part1 [input]
-    (solve input #"^(\d+)\1$"))
+  (defn part1 [input] (solve input #"^(\d+)\1$"))
 #+end_src
 
 ** Part 2
 And simply match it more often for Part 2
 #+begin_src clojure
-  (defn part2 [input]
-    (solve input #"^(\d+)\1+$"))
+  (defn part2 [input] (solve input #"^(\d+)\1+$"))
 #+end_src
 
 * [[https://adventofcode.com/2025/day/3][Day 3: Lobby]]
@@ -211,7 +209,7 @@ We filter /fresh/ ingredients. For each ingredient, we loop over all ranges and 
 #+end_src
 
 ** Part 2
-The ranges are too big to enumerate so we have to sum the ranges individually. This is very difficult to do if you don't sort it beforehand, and very easy to do if you do.
+The ranges are too big to enumerate so we have to sum the ranges individually. This is very difficult to do if you don't sort it beforehand, and very easy to do if you do. Thanks for the inspiration, [[https://github.com/rubengrootroessink/][Ruben]].
 
 Once sorted, we start with the smallest range and =reduce= them by storing =[current m]=. =current= refers to the current count (which is the puzzle answer after reducing). =m= refers to the maximum range end at the moment. If a next range starts before =m=, we don't count those elements, preventing double-counting overlapping ranges.
 
@@ -249,7 +247,7 @@ Part one contains of two parts: parsing and reducing. The parsing is straightfor
       (result cols ops)))
 #+end_src
 
-Which omits =result=, a function that takes the columns and corresponding operators and computes the final result. We do =(zipmap cols ops)= to group them nicely together, and then simply reduce.
+The code above omits =result=, a function that takes the columns and corresponding operators and computes the final result. We do =(zipmap cols ops)= to group them nicely together, and then simply reduce.
 
 #+begin_src clojure
   (defn- result
@@ -269,7 +267,7 @@ Which omits =result=, a function that takes the columns and corresponding operat
 ** Part 2
 Part two is somewhat similar, except that the parsing is now more difficult. I define =group-while=, a function that's quite badly named, suggesting generality while it really is mostly useful for Advent of Code 2025, Day 6, Part 2. Here it is:
 
-#+begin_src clojure
+#+begin_src clojure :eval yes :results silent
   (defn group-while
     "Groups a collection into subgroups as long as `pred` holds."
     [pred coll]
@@ -285,14 +283,15 @@ Part two is somewhat similar, except that the parsing is now more difficult. I d
 
 And it allows you to group a collection into subcollections. Each element =x= is kept in a group as long as =(pred x)= holds. An example shows the result:
 
+#+NAME: group-while-example
 #+begin_src clojure :eval yes
   (group-while odd? [1 3 5 2 3 5 6 7 8 9])
 #+end_src
 
-#+RESULTS:
+#+RESULTS: group-while-example
 : [[1 3 5] [3 5] [7] [9]]
 
-For part two, a logical =pred= is whether the line contains non-whitespace characters. As long as it does, we're still in a single "problem". Now we also reduce, where =(map #(first (s/parse-ints (str/join %))) row)= does the heavy lifting. =s/parse-ints= parses all integers and throws away the rest (like whitespace or operators). Since it's already transposed, this is enough - the rest is similar to part one.
+For part two, a logical =pred= is whether the line contains non-whitespace characters. As long as it does, we're still in the same "problem". After this we can reduce, where =(map #(first (s/parse-ints (str/join %))) row)= does the heavy lifting. =s/parse-ints= parses all integers and throws away the rest (like whitespace or operators). Since it's already transposed, this is enough - the rest is similar to part one.
 
 #+begin_src clojure
   (defn part2 [input]
@@ -317,7 +316,8 @@ For part one we need to find out "how often is the tachyon beam split?", which i
 #+begin_src clojure
   (defn is-beam?
     "Returns true when a point in a grid is a beam, nil otherwise.
-    A point is a beam if and only if one of the following holds:
+    A point is a beam if and only if at least one of the following
+    holds:
     - 'n' (spot north) is a beam AND NOT a splitter (`^`)
     - 'ne' is a beam AND 'e' is a splitter
     - 'nw' is a beam AND 'w' is a splitter
@@ -437,7 +437,7 @@ Loop over all pairs of boxes, combining them at each step. Whenever we end up wi
 * [[https://adventofcode.com/2025/day/9][Day 9: Movie Theater]]
 
 ** Part 1
-Part one is not too difficult: take all pairs of corners (=#=), compute the size of the square, and then just take the largest of those.
+Part one is not too difficult: take all pairs of corners (our input), compute the size of the square, and then just take the largest of those.
 
 #+begin_src clojure
   (defn- pairs [xs]
@@ -531,3 +531,174 @@ Got it? =[north|south]-point= are the outliers (we'll get to the =outliers= fn i
          (map #(size % anchor))
          (reduce max)))
 #+end_src
+
+* [[https://adventofcode.com/2025/day/10][Day 10: Factory]]
+** Part 1
+Part 1 is rather straightforward, though the code is perhaps a bit too verbose. The idea is to try all possible combinations of buttons (via =combo/combinations=) of length =n=. If this combination of buttons results in the target string, return =n=. If =n= starts at 1, we guarantee that we find an optimal solution.
+
+First we parse the line, which is a fn we're also going to need in part two:
+#+begin_src clojure
+  (defn- parse-line [line]
+    (let [[indicator & buttons] (str/split line #" ")
+          indicator (-> indicator
+                        (str/replace #"\[" "")
+                        (str/replace #"\]" ""))
+          joltage (->> (last buttons)
+                       s/parse-ints)
+          buttons (->> (butlast buttons)
+                       (map s/parse-ints))]
+      {:indicator indicator :buttons buttons :joltage joltage}))
+#+end_src
+
+Then part one, where the bulk is done by =amount-indicator=.
+
+#+begin_src clojure
+  (defn- toggle [x]
+    (condp = x
+      \. \#
+      \# \.))
+
+  (defn- press-button
+    "Presses a button, which is a list of indices.
+
+    For example, with indicator: `.##.` and button `(0 2)`, this will
+    output `##..` (though a vector)."
+    [indicator idxs]
+    (reduce (fn [acc i]
+              (update acc i toggle))
+            indicator
+            idxs))
+
+  (defn- press-buttons [indicator buttons]
+    (reduce press-button (vec indicator) buttons))
+
+  (defn- amount-indicator
+    "Computes the minimum amount of button presses necessary to obtain a
+    given indicator by brute-forcing every possible combination."
+    [data]
+    (let [ind (:indicator data)
+          empty-ind (apply str (repeat (count ind) \.))]
+
+      (loop [n 1]
+        (let [btns (combo/combinations (:buttons data) n)]
+          (if (not (empty? (filter #(= ind (apply str (press-buttons empty-ind %)))
+                                   btns)))
+            n
+            (recur (inc n)))))))
+
+  (defn part1 [input]
+    (->> input
+         s/parse-lines
+         (map parse-line)
+         (map amount-indicator)
+         (reduce +)))
+#+end_src
+** Part 2
+Part two is really difficult, I could not get this to work on my own. Much later I found [[https://old.reddit.com/r/adventofcode/comments/1pp98cr/2025_day_10_part_2_solution_without_using_a_3rd/][this solution by DelightfulCodeWeasel]], which is remarkably simple: I might convert my solution to use his insight. Nonetheless, inspired by others I turned to an external solver: [[https://www.ojalgo.org/][ojAlgo]]. The documentation is in Javadoc and by examples on the website. I couldn't easily read Javadoc via =M-x cider-doc= and the examples are either very simple or do something very specific, so this took me a few tries.
+
+The idea is to encode the puzzle in a model and solve it by minimizing some constraints - in this case, minimize the button presses. Here's the code, but I immediately forgot (rather, never entirely understood) how exactly the =ExpressionsBasedModel= works, so don't press me on this.
+
+#+begin_src clojure
+  (defn- solve [buttons joltage]
+    (let [nb (count buttons)
+          nj (count joltage)
+          model (ExpressionsBasedModel.)]
+
+      (doseq [b (range nb)]
+        (doto (.addVariable model)
+          (.lower 0)
+          (.weight 1)
+          (.integer true)))
+
+      (doseq [j (range nj)]
+        (let [expr (.addExpression model)]
+          (.level expr (get joltage j))
+          (doseq [b (range nb)]
+            (when (some #{j} (get buttons b))
+              ;; connect button b to constraint j
+              (.set expr b 1)))))
+
+      (let [result (.minimise model)
+            state (.getState result)]
+        ;; (.intValue) sometimes get things wrong, 2.9999999994 becomes
+        ;; 2, round ourselves
+        (vec (for [i (range nb)]
+               (Math/round (.doubleValue (.get result i))))))))
+
+  (defn part2 [input]
+    (let [problems
+          (->> input
+               s/parse-lines
+               (map parse-line))]
+      (->> problems
+           (pmap (fn [problem]
+                   (solve (vec (:buttons problem)) (:joltage problem))))
+           (map #(reduce + %))
+           (reduce +))))
+#+end_src
+* [[https://adventofcode.com/2025/day/11][Day 11: Reactor]]
+** Part 1
+Rather simple, find out how many paths are from =you= to =out=. We start at =you= and for each child count the paths that end up at =out=. Effectively a BFS, made fast using =memoize=.
+
+#+begin_src clojure
+  (defn- parse-input [input]
+    (->> input
+         s/parse-lines
+         (map #(re-seq #"\w+" %))
+         (map (fn [[from & to]] [from to]))
+         (into {})))
+
+  (defn- count-paths-to-goal
+    [m cur goal]
+    (if (= cur goal)
+      1
+      (let [neighbours (m cur)]
+        (reduce + (map #(count-paths-to-goal m % goal)
+                       neighbours)))))
+  (def count-paths-to-goal (memoize count-paths-to-goal))
+
+  (defn part1 [input]
+    (count-paths-to-goal (parse-input input) "you" "out"))
+#+end_src
+** Part 2
+Very similar, but with a few constraints. How many paths go from =svr= to =out=, passing through both =dac= and =fft=. We know the graph is acyclic by virtue of part one actually terminating. This means that each valid path either goes from =fft -> dac= or from =dac -> fft= somewhere. We know which of these two options is the case by checking if there is at least one path from from =fft= to =dac=.
+
+Let's assume for now it's the first one. Then the result is =(* (p :svr :fft) (p :fft :dac) (p :dac :out))=, where =p= counts the amount of paths from its first argument to its second. This is effectively the solution. All that remains is to remove our assumption and check which of the two paths we're dealing with:
+
+#+begin_src clojure
+  (defn part2 [input]
+    (let [g (parse-input input)
+          [first second] (if (pos? (count-paths-to-goal g "fft" "dac"))
+                           ["fft" "dac"]
+                           ["dac" "fft"])]
+      (* (count-paths-to-goal g "svr" first)
+         (count-paths-to-goal g first second)
+         (count-paths-to-goal g second "out"))))
+#+end_src
+
+* [[https://adventofcode.com/2025/day/12][Day 12: Christmas Tree Farm]]
+The last day already! This day only has one part, which looks remarkably difficult, but is remarkably easy. It is in fact not too strange that it is easy, since it would /very difficult/ if it was as difficult as it looks. It's essentially a version of the 2D [[https://en.wikipedia.org/wiki/Bin_packing_problem][bin packing problem]], which is NP-hard.  Take a look at the first line in our input:
+
+=40x42: 38 37 45 42 54 41=
+
+We have a 40x42 grid, and we have to check whether we can fit 257 3x3 shapes in it. This is pretty hard in general. However, some cases are trivially solvable or trivially not solvable: when the grid is simply big enough to put each shape next to each other.
+
+Let's try this solution first:
+
+#+begin_src clojure
+  (defn naive-fit? [recipe]
+    (let [[grid presents] (str/split recipe #": ")
+          gridsize (reduce * (s/parse-ints grid))
+          presentsize (* 9 (reduce + (s/parse-ints presents)))]
+      (>= gridsize presentsize)))
+
+  (defn part1 [input]
+    (->> input
+         s/parse-blocks
+         last
+         s/parse-lines
+         (filter naive-fit?)
+         count))
+#+end_src
+
+This returns the amount of problems that are trivially solvable. And it turns out that this is the correct solution! Phew!

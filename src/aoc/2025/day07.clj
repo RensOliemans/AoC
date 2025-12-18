@@ -6,7 +6,8 @@
 
 (defn is-beam?
   "Returns true when a point in a grid is a beam, nil otherwise.
-  A point is a beam if and only if one of the following holds:
+  A point is a beam if and only if at least one of the following
+  holds:
   - 'n' (spot north) is a beam AND NOT a splitter (`^`)
   - 'ne' is a beam AND 'e' is a splitter
   - 'nw' is a beam AND 'w' is a splitter
