@@ -22,7 +22,6 @@
 (defn height [grid] (count grid))
 (defn width [grid] (count (first grid)))
 
-
 (defn col [grid x] (mapv #(nth % x) grid))
 
 (defn row [grid y] (nth grid y))

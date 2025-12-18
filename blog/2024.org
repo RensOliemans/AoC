@@ -247,3 +247,103 @@ This is now trivial, since we can now easily sort everything, filter the unsorte
            (pmap middle-num)
            (reduce +))))
 #+end_src
+
+* [[https://adventofcode.com/2024/day/6][Day 6: Guard Gallivant]]
+
+** Part 1
+The guard walks across the grid until they encounter an obstacle (=#=), marking a turn in clockwise direction. Simply walk out that path until (=get-in grid next-location=) is =nil=:
+
+#+begin_src clojure
+  (defn guard-route
+    "Takes a `grid` as input returns a vector of 2d coordinates: the route
+    of the guard, starting at `start` and turning clockwise at \"#\"
+    characters. "
+    [grid start]
+    (let [size (count grid)
+          grid (assoc-in grid start \.)]
+      (loop [location start
+             directions (cycle v/cardinal-dirs)
+             route []]
+        (let [[y x] location
+              [x' y'] (first directions)
+              next-location [(+ y y') (+ x x')]
+              next-object (get-in grid next-location)
+              route (conj route location)]
+          (condp = next-object
+            nil route
+            \. (recur next-location
+                      directions
+                      route)
+            \# (recur location
+                      (next directions)
+                      route))))))
+
+  (defn part1 [input]
+    (let [grid (g/to-matrix input)
+          start (first (g/locs-where grid #(= % \^)))
+          route (guard-route grid start)]
+      (count (distinct route))))
+#+end_src
+
+** Part 2
+For each point in the route (that isn't the starting position), add an obstacle and check whether the route has a loop:
+
+#+begin_src clojure
+  (defn route-has-loop? [grid start]
+    (let [size (count grid)
+          grid (assoc-in grid start \.)]
+      (loop [location start
+             directions (cycle v/cardinal-dirs)
+             visited #{}]
+        (let [[y x] location
+              [x' y'] (first directions)
+              next-location [(+ y y') (+ x x')]
+              next-object (get-in grid next-location)
+              pair [next-location [x' y']]]
+          (if (contains? visited pair)
+            true ;; we have a loop!
+            (condp = next-object
+              nil false ;; we exited the puzzle
+              \. (recur next-location
+                        directions
+                        visited)
+              \# (recur location
+                        (next directions)
+                        (conj visited pair))))))))
+
+  (defn part2 [input]
+    (let [grid (g/to-matrix input)
+          start (first (g/locs-where grid #(= % \^)))
+          route (disj (set (guard-route grid start)) start)]
+      (->> route
+           (pmap (fn [new-obstacle]
+                   (route-has-loop? (assoc-in grid new-obstacle \#) start)))
+           (filter true?)
+           (count))))
+#+end_src
+
+*** Timing of different methods
+The following table shows a short overview of the results of ~(time (p2 input))~ (it's too slow for ~(crit/quick-bench)~) with some different variants:
+| Method                     | time |
+|----------------------------+------|
+| Set - always add & check   | 9s   |
+| Set - only add on obstacle | 6s   |
+| Set - only check on north  | 5.5  |
+| Counter (7000)             | 4s   |
+
+**** =set= methods.
+These methods refer to keeping track of a =set= of visited =(node, direction)= pairs. If we've seen one before, we must be in a loop. My original implementation was /Set - always add & check/: add /every/ location we visit to the =visited= set and check if we've seen it before. That turned out to be the slowest one—my code spent about 10% of its time hashing entries. One step faster is /Set - only add on obstacle/, which only adds an element to the set when we visit an obstacle.
+
+The fastest =set=-related method (though only slightly) was /Set - only check on north/, and this only checks if the current =(node, direction)=-pair is in =visited= if =direction == North=. This was counterintuitive for me since that meant it was actually doing some extra work: it might be traversing the current path for up to 3 extra obstacles compared to the previous one. However, the hashing was apparently so expensive compared to traversing the grid that this was still a hair faster.
+
+Since this was only slightly faster but made the code a bit convoluted and difficult to understand ("why are we only checking if we've been here if we're heading North right now?"), I opted for the second method.
+
+**** =Counter=.
+This is kind of a hack, but it's faster than the =set=-methods. Instead of a =visited= set, we keep track of a =counter= of nodes we've visited. Once we reach 7000, we assume we're in a loop and exit. 6500 also worked for me, but that might be too input-dependent.
+
+Still, any arbitrary number fails for some input, so I've opted to not do this.
+
+* [[https://adventofcode.com/2024/day/7][Day 7: Bridge Repair]]
+
+** Part 1
+
