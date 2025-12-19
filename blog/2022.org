@@ -1,0 +1,263 @@
+:PROPERTIES:
+:header-args: :eval no :exports both
+:END:
+#+TITLE: AoC 2022
+#+SUBTITLE: My solutions for Advent of Code 2022
+#+AUTHOR: Rens Oliemans
+#+OPTIONS: toc:nil ^:t num:nil
+
+Welcome to my solution page for [[https://adventofcode.com/2022][Advent of Code 2022]]. You can find [[https://codeberg.org/RensOliemans/AoC][the git repo here]].
+* [[https://adventofcode.com/2022/day/1][Day 1: Calorie Counting]]
+** Part 1
+Straightforward, group, sum each group, take max group
+#+begin_src clojure
+  (defn part1 [input]
+    (->> (s/parse-blocks input)
+         (map s/parse-ints)
+         (map #(reduce + %))
+         (apply max)))
+#+end_src
+** Part 2
+Take max 3 and sum those.
+#+begin_src clojure
+  (defn part2 [input]
+    (->> (s/parse-blocks input)
+         (map s/parse-ints)
+         (map #(reduce + %))
+         (sort >)
+         (take 3)
+         (reduce +)))
+#+end_src
+
+* [[https://adventofcode.com/2022/day/2][Day 2: Rock Paper Scissors]]
+** Part 1
+Rock paper scissors. Let's first define some constant mappings:
+
+#+begin_src clojure
+  (def shape-score {:rock 1, :paper 2, :scissors 3})
+
+  (def outcome-score {:loss 0, :draw 3, :win 6})
+
+  (def beats {:rock :scissors, :paper :rock, :scissors :paper})
+
+  (def beaten-by (map-invert beats))
+
+  (def opponent-map {"A" :rock, "B" :paper, "C" :scissors})
+
+  (def you-map {"X" :rock, "Y" :paper, "Z" :scissors})
+#+end_src
+
+And now we need to find out what the outcome of each round is and sum the score:
+
+#+begin_src clojure
+  (defn- outcome [opponent you]
+    (cond
+      (= opponent you) :draw
+      (= (beats you) opponent) :win
+      :else :loss))
+
+  (defn- score-round [opponent you]
+    (+ (shape-score you)
+       (outcome-score (outcome opponent you))))
+
+  (defn part1 [input]
+    (->> (s/parse-lines input)
+         (map #(str/split % #" "))
+         (map (fn [[o y]]
+                (score-round (opponent-map o) (you-map y))))
+         (reduce +)))
+#+end_src
+** Part 2
+We need to choose the shape based on the /outcome/, and then score the round:
+#+begin_src clojure
+  (def instruction-map {"X" :loss, "Y" :draw, "Z" :win})
+
+  (defn choose-shape [opponent instruction]
+    (case instruction
+      :draw opponent
+      :win (beaten-by opponent)
+      :loss (beats opponent)))
+
+  (defn part2 [input]
+    (->> (s/parse-lines input)
+         (map #(str/split % #" "))
+         (map (fn [[o i]]
+                (let [opp (opponent-map o)
+                      instr (instruction-map i)
+                      you (choose-shape opp instr)]
+                  (score-round opp you))))
+         (reduce +)))
+#+end_src
+* [[https://adventofcode.com/2022/day/3][Day 3: Rucksack Reorganization]]
+** Part 1
+Group each line in two parts, take the intersection of each part, and score that.
+#+begin_src clojure
+  (defn- split-in-two [v]
+    (let [c (count v)
+          h (quot c 2)]
+      [(subvec v 0 h) (subvec v h)]))
+
+  (defn- common-items [& vecs]
+    (apply set/intersection (map set vecs)))
+
+  (defn- char-to-num [c]
+    (if (Character/isUpperCase c)
+      (- (int c) 38)
+      (- (int c) 96)))
+
+  (defn part1 [input]
+    (->> (s/parse-lines input)
+         (map vec)
+         (map split-in-two)
+         (mapcat #(apply common-items %))
+         (map char-to-num)
+         (reduce +)))
+#+end_src
+** Part 2
+Instead of splitting each line in to (=(map split-in-two)=), we take groups of three lines (=(partition 3)=) and do the same computation.
+#+begin_src clojure
+  (defn part2 [input]
+    (->> (s/parse-lines input)
+         (map vec)
+         (partition 3)
+         (mapcat #(apply common-items %))
+         (map char-to-num)
+         (reduce +)))
+#+end_src
+* [[https://adventofcode.com/2022/day/4][Day 4: Camp Cleanup]]
+** Part 1
+The following function tests whether two ranges $r_1, r_2$ fully overlap:
+#+begin_src clojure
+  (defn- fully-overlap? [[s1 e1 :as r1] [s2 e2 :as r2]]
+    (cond
+      (= e1 e2) true
+      (> e1 e2) (<= s1 s2)
+      (< e1 e2) (>= s1 s2)))
+#+end_src
+
+This image shows one scenario for when the ranges fully overlap, and in dotted line when they /don't/ overlap:
+
+#+ATTR_HTML: :width 60%
+[[./img/2022-04.jpg]]
+
+It should be clear that if $e_1 > e_2$, the ranges fully overlap if and only if $s1 <= s2$. The opposite case is symmetric, of course. This makes part 1 easy:
+
+#+begin_src clojure
+(defn part1 [input]
+  (->> (s/parse-lines input)
+       (map #(str/split % #","))
+       (map s/parse-ranges)
+       (filter #(apply fully-overlap? %))
+       count))
+#+end_src
+
+** Part 2
+This should be straightforward, if not look at the dotted line above.
+#+begin_src clojure
+  (defn- partly-overlap? [[s1 e1] [s2 e2]]
+    (cond
+      (= e1 e2) true
+      (> e1 e2) (>= e2 s1)
+      (< e1 e2) (>= e1 s2)))
+
+  (defn part2 [input]
+    (->> (s/parse-lines input)
+         (map #(str/split % #","))
+         (map s/parse-ranges)
+         (filter #(apply partly-overlap? %))
+         count))
+#+end_src
+
+* [[https://adventofcode.com/2022/day/5][Day 5: Supply Stacks]]
+** Part 1
+First, let's parse properly. I want each a list of sequences: the list of stacks of crates.
+#+begin_src clojure
+  (defn parse-crates
+    "Takes a block and returns the columns of crate letters."
+    [block]
+    (let [rows (-> block s/parse-lines butlast)
+          cols (v/transpose rows)]
+      (keep-indexed
+       (fn [i col]
+         (when (= 1 (mod i 4))
+           (remove #{\space} col)))
+       cols)))
+
+  (defn- parse-procedure [line]
+    (let [[_ a f t] (re-find #"move (\d+) from (\d+) to (\d+)" line)]
+      {:amount (parse-long a)
+       :from   (dec (parse-long f))
+       :to     (dec (parse-long t))}))
+
+  (defn- parse-procedures [block]
+    (map parse-procedure (s/parse-lines block)))
+#+end_src
+
+We parse the crates like this:
+
+#+NAME: parse-crates
+#+begin_src clojure :eval no-export :cache yes
+  (aoc.2022.day05/parse-crates
+  "    [D]    
+  [N] [C]    
+  [Z] [M] [P]
+   1   2   3 
+  ")
+#+end_src
+
+#+RESULTS[73f10b23e88252278a087d1c060c0bcf259b18e3]: parse-crates
+: ((\N \Z) (\D \C \M) (\P))
+
+We now have to apply each procedure, one by one, and find the result (the character of the crate that ends up on top of each stack).
+
+See the following two parts:
+#+NAME: conj-to-seq
+#+begin_src clojure :eval yes
+  (conj '(1 2 3) 4)
+#+end_src
+
+#+RESULTS: conj-to-seq
+: (4 1 2 3)
+
+#+NAME: drop-from-seq
+#+begin_src clojure :eval yes
+  (drop 2 '(1 2 3 4 5 6))
+#+end_src
+
+#+RESULTS: drop-from-seq
+: (3 4 5 6)
+
+Which is fantastic, since we can just =conj= and =drop= and the stacks will be moved as they should, one-by-one. Here's the rest of part one:
+
+#+begin_src clojure
+  (defn- apply-procedure
+    "Applies a procedure to a list of stacks."
+    [crane stacks {:keys [amount from to]}]
+    (let [src (nth stacks from)
+          tomove (take amount src)
+          tomove (if (= crane :CrateMover9001) (reverse tomove) tomove)]
+      (-> stacks
+          vec
+          (assoc from (drop amount src))
+          (update to #(apply conj % tomove)))))
+
+  (defn- result [input crane]
+    (let [[crates-block procedures-block] (s/parse-blocks input)]
+      (->> (parse-procedures procedures-block)
+           (reduce (partial apply-procedure crane)
+                   (parse-crates crates-block))
+           (map first)
+           (apply str))))
+
+  (defn part1 [input] (result input :CrateMover9000))
+#+end_src
+
+This is of course not my initial iteration, as you might see from the /CraneMover9001/. Oops, spoilers for
+** Part 2
+#+begin_src clojure
+  (defn part2 [input] (result input :CrateMover9001))
+#+end_src
+* [[https://adventofcode.com/2022/day/6][Day 6: Tuning Trouble]]
+** Part 1
+Partition input in groups of 4, continue until a group has unique characters.
+** Part 2

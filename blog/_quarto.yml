@@ -9,6 +9,7 @@ website:
     contents:
     - 2025.qmd
     - 2024.qmd
+    - 2022.qmd
   page-footer:
     center:
       - text: "Front page"
