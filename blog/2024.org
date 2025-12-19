@@ -346,39 +346,69 @@ Still, any arbitrary number fails for some input, so I've opted to not do this.
 * [[https://adventofcode.com/2024/day/7][Day 7: Bridge Repair]]
 
 ** Part 1
-We effectively reduce twice: once to reduce all numbers and once to reduce all possible operators. I do the last one in a =mapcat=, but same stuff, more or less. =is-correct?= returns true if the test result can be obtained by any of the input numbers.
+This is an example line: =3267: 81 40 27=. Let $t = 3267$ be the target, and $n_1 = 81, n_2 = 40, n_3 = 27$ be the "numbers" that should make up $t$. Each equation has $k$ numbers, $k=3$ for this example.
+
+Let's define a function =is-correct?=, which will output =true= if $t$ can be "made" with $n_1, \dots, n_k$ and =false= otherwise.
+
+Since the compution is LTR, $n_k$ will always be applied last. If the operator is multiplication, for example, $t$ must be divisible by $n_k$. If it is not, the multiplication operator is not valid for that spot. If it is, we recursively check =is-correct?= with a new $t' = t / n_k$, and the numbers $n_1, n_2, \dots, n_{k-1}$.
+
+At a certain point we might end up with $k=1$, the base case for =is-correct?=. =is-correct?= will output =true= if and only if $t=k$.
+
+We must first define for each operator a =reverse= and =valid?=:
 
 #+begin_src clojure
-  (defn is-correct? [[result & numbers] operators]
-    (let [possibilities
-          (reduce (fn [acc i]
-                    (mapcat (fn [n] (map #(% n i) operators)) acc))
-                  [(first numbers)]
-                  (rest numbers))]
-      (some #(= result %) possibilities)))
+  (defn- operators-1 []
+    [{:name :multiplication :reverse #(/ %1 %2) :valid? #(= 0 (mod %1 %2))}
+     {:name :addition :reverse #(- %1 %2) :valid? #(> %1 %2)}])
+#+end_src
+
+And here is our recursive =is-correct?=:
+
+#+begin_src clojure
+  (defn- is-correct?
+    "Can `target` be made with `numbers`, using `operators`?"
+    [target numbers operators]
+    (if (= 1 (count numbers))
+      (= target (first numbers))
+      (->> operators
+           (filter (fn [op] ((:valid? op) target (last numbers))))
+           (some (fn [op]
+                   (is-correct?
+                    ((:reverse op) target (last numbers))
+                    (butlast numbers)
+                    operators))))))
 
   (defn- sum-correct-equations [input operators]
     (->> (s/parse-lines input)
          (map s/parse-ints)
-         (filter #(is-correct? % operators))
+         (filter (fn [[target & numbers]] (is-correct? target numbers operators)))
          (map first)
          (reduce +)))
 
   (defn part1 [input]
-    (let [operators [#(* %1 %2)
-                     #(+ %1 %2)]]
-      (sum-correct-equations input operators)))
+    (let [ops (operators-1)]
+      (sum-correct-equations input ops)))
 #+end_src
 
 ** Part 2
-We introduce a third operator: concatenation. Part two is effectively identical, but for the third operator:
+Part two is effectively identical, but now with the concatenation operator:
 
 #+begin_src clojure
+  (defn- operators-2 []
+    (into (operators-1)
+          [{:name :concatenation
+            :reverse (fn [n x]
+                       (let [s (str n)]
+                         (Long/parseLong (subs s 0 (- (count s) (count (str x)))))))
+            :valid? (fn [n x]
+                      (let [sn (str n)
+                            sx (str x)]
+                        (and (> (count sn) (count sx))
+                             (str/ends-with? sn sx))))}]))
+
   (defn part2 [input]
-    (let [operators [#(* %1 %2)
-                     #(+ %1 %2)
-                     #(Long/parseLong (str %1 %2))]]
-      (sum-correct-equations input operators)))
+    (let [ops (operators-2)]
+      (sum-correct-equations input ops)))
 #+end_src
 
-This one takes quite long: nearly three seconds. That's not too nice.
+My [[https://codeberg.org/RensOliemans/AoC/commit/da0758592738243980f33c3d86150682371e8c25][previous version]] ran over three seconds, but this runs in 50msec.
