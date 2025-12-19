@@ -1,9 +1,7 @@
 (ns aoc.2022.day08
   (:require [aoc.util.day :as d]
             [aoc.util.string :as s]
-            [aoc.util.grid :as g]
-            ;; [aoc.util.vec :as v]
-	    ))
+            [aoc.util.grid :as g]))
 
 (def input (d/day-input 2022 8))
 
@@ -17,7 +15,6 @@
         (all-lower? (subvec col (inc y)))
         (all-lower? (subvec row 0 x))
         (all-lower? (subvec row (inc x))))))
-
 
 (defn part1 [input]
   (let [g (g/to-matrix input #(parse-long (str %)))]

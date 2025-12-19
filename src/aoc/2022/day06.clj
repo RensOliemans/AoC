@@ -6,7 +6,7 @@
 (defn- first-unique-group [input n]
   (->> input
        (partition n 1)
-       (take-while #(not= (count %) (count (set %))))
+       (take-while #(not= n (count (distinct %))))
        count
        (+ n)))
 

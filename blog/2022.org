@@ -259,5 +259,159 @@ This is of course not my initial iteration, as you might see from the /CraneMove
 #+end_src
 * [[https://adventofcode.com/2022/day/6][Day 6: Tuning Trouble]]
 ** Part 1
-Partition input in groups of 4, continue until a group has unique characters.
+Partition input in groups of 4, continue until a group has only unique characters. This check is done by =(not​= n (count (distinct group)))=, where $n=4$ for part one. Then we add $n$ to find the first /character/ where this check holds, not just the first /group/.
+
+#+begin_src clojure
+  (defn- first-unique-group [input n]
+    (->> input
+         (partition n 1)
+         (take-while #(not= n (count (distinct %))))
+         count
+         (+ n)))
+
+  (defn part1 [input] (first-unique-group input 4))
+#+end_src
 ** Part 2
+#+begin_src clojure
+  (defn part2 [input] (first-unique-group input 14))
+#+end_src
+* [[https://adventofcode.com/2022/day/7][Day 7: No Space Left On Device]]
+** Part 1
+This was an interesting day. A quick check in the input reveals that the only =$ cd /= is at the beginning of the terminal output. This means that we can keep track of the current working directory (=pwd=) and treating that as a stack. =$ cd a= pushes =a= on the stack, =$ cd ..= pops the current directory from the stack.
+
+We ignore the =$ ls= and =dir a= output lines. Whenever we find a file with corresponding size, we add the filesize to each directory in =pwd=.
+
+#+begin_src clojure
+  (defn- pts [pwd]
+    (apply str (reverse pwd)))
+
+  (defn- directory-sizes [input]
+    (let [[pwd dir-sizes]
+          (reduce
+           (fn [[pwd dir-sizes] line]
+             (condp re-matches line
+               #"\$ ls" [pwd dir-sizes]
+               #"dir \w+" [pwd dir-sizes]
+               #"\$ cd \.\." [(pop pwd) dir-sizes]
+               #"\$ cd /" [(conj pwd "/") (assoc dir-sizes "/" 0)]
+               #"\$ cd ([\w]+)"
+               :>> (fn [[_ dir]]
+                     (let [d (str dir "/")
+                           pwd' (conj pwd d)]
+                       [pwd' (assoc dir-sizes (pts pwd') 0)]))
+               #"([0-9]+) .+"
+               :>> (fn [[_ filesize-str]]
+                     (let [filesize (parse-long filesize-str)]
+                       ;; add filesize to current directory and all
+                       ;; parent dirs (in pwd)
+                       [pwd
+                        (loop [sizes dir-sizes
+                               pwd' pwd]
+                          (if (empty? pwd')
+                            sizes
+                            (recur
+                             (update sizes (pts pwd') #(+ filesize %))
+                             (rest pwd'))))]))))
+           ['() {}]
+           (s/parse-lines input))]
+      dir-sizes))
+#+end_src
+
+And part one is just summing the sizes of all directories less than size $100000$:
+#+begin_src clojure
+  (defn part1 [input]
+    (let [sizes (directory-sizes input)]
+      (->> sizes
+           (filter #(> 100000 (last %)))
+           (map last)
+           (reduce +))))
+#+end_src
+
+** Part 2
+Part two is easy now that we're properly tracking directory sizes:
+#+begin_src clojure
+  (defn part2 [input]
+    (let [sizes (directory-sizes input)
+          used-space (sizes "/")
+          unused-space (- 70000000 used-space)
+          deletion-size (- 30000000 unused-space)
+          ]
+      (->> sizes
+           (sort-by val)
+           (drop-while #(> deletion-size (val %)))
+           first
+           val)))
+#+end_src
+
+* [[https://adventofcode.com/2022/day/8][Day 8: Treetop Tree House]]
+** Part 1
+Grid traversing. From the puzzle text:
+#+begin_quote
+A tree is visible if all of the other trees between it and an edge of the grid are shorter than it.
+#+end_quote
+
+"all other trees between it and an edge of the grid" is obtained via this snippet:
+#+begin_src clojure
+  [(subvec col 0 y)    
+   (subvec col (inc y))
+   (subvec row 0 x)
+   (subvec row (inc x))]
+#+end_src
+
+Now part one is not too difficult:
+#+begin_src clojure
+  (defn- visible? [grid [x y]]
+    (let [row (g/row grid y)
+          col (g/col grid x)
+          z (g/cell grid [x y])
+          all-lower? (fn [coll]
+                       (every? #(> z %) coll))]
+      (or (all-lower? (subvec col 0 y))
+          (all-lower? (subvec col (inc y)))
+          (all-lower? (subvec row 0 x))
+          (all-lower? (subvec row (inc x))))))
+
+  (defn part1 [input]
+    (let [g (g/to-matrix input #(parse-long (str %)))]
+      (count 
+       (for [y (range (g/height g))
+             x (range (g/width g))
+             :when (visible? g [x y])]
+         [x y]))))
+#+end_src
+
+** Part 2
+In part two we compute the score, which is a similar process. Say that a tree $t$ has x-coordinate $x$, and the grid has width $w$. Then we check the tree at $x+1$, $x+2$, $x+3$, etc. Whenever the tree at $x+i$ is at least as high as $t$, or $x+i > w$, we return $i$.
+
+In our code, we use =(take-while $(> z %))=, which means that we exclude $x+i$ in the process above, and only go to $x+i-1$. In that case, we must increment our result. The rest of the process is trivial:
+
+#+begin_src clojure
+  (defn- score [grid [x y]]
+    (let [row (g/row grid y)
+          col (g/col grid x)
+          z (g/cell grid [x y])
+          num-lower-trees
+          (fn [coll]
+            (let [res
+                  (->> coll
+                       (take-while #(> z %))
+                       count)]
+              ;; if there is one, include the tree that's higher, since
+              ;; we can see that.
+              (if (= res (count coll))
+                res
+                (inc res))))]
+      (* (num-lower-trees (reverse (subvec col 0 y)))
+         (num-lower-trees (subvec col (inc y)))
+         (num-lower-trees (reverse (subvec row 0 x)))
+         (num-lower-trees (subvec row (inc x))))))
+
+  (defn part2 [input]
+    (let [g (g/to-matrix input #(parse-long (str %)))]
+      (->>
+       (for [y (range (g/height g))
+             x (range (g/width g))]
+         [[x y] (score g [x y])])
+       (map last)
+       (apply max))))
+#+end_src
