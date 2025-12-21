@@ -415,3 +415,72 @@ In our code, we use =(take-while $(> z %))=, which means that we exclude $x+i$ i
        (map last)
        (apply max))))
 #+end_src
+
+* [[https://adventofcode.com/2022/day/9][Day 9: Rope Bridge]]
+** Part 1
+This was a really fun day! Another one of those days where the solution of part two makes the solution of part one much prettier. I first had a solution that didn't really generalise to part two, and was lost for a while. I cheated a bit and looked at the solutions and found [[https://github.com/elektronaut/advent-of-code/blob/main/2022/day09/day09.clj][a nice solution]] by [[https://github.com/elektronaut][elektronaut]]. However, I think I made it quite a bit more elegant.
+
+elektronaut's solution can be broken down in the following steps:
+1. From a knot and the previous knot, compute the location of the new last knot. Here is the
+   relevant code:
+
+   #+begin_src clojure
+     (defn- distance [v1 v2]
+       (apply max (map abs (map - v1 v2))))
+
+     (defn- clamp [n minim maxim]
+       (cond
+         (> n maxim) maxim
+         (< n minim) minim
+         :else n))
+
+     (defn- clamp-around-1 [n]
+       (clamp n -1 1))
+
+     (defn- move-tail
+       "Based on a head and tail, computes the new tail"
+       [head tail]
+       (if (> (distance head tail) 1)
+         (mapv + tail (clamp-around-1 (map - head tail)))
+         tail))
+   #+end_src
+
+2. Do this for all knots, given a direction.
+
+3. Do this for all directions.
+
+elektronaut kept track of the entire history in the function that was =reduced= (see their code). Each function call would take the history, work on only the last element in history and =conj= the new state on top of the history state. However, this is more elegantly done by =reductions=! From the docs:
+#+begin_quote
+clojure.core/reductions
+[f coll]
+[f init coll]
+  Returns a lazy seq of the intermediate values of the reduction (as
+  per reduce) of coll by f, starting with init.
+#+end_quote
+
+This means that, given a rope and a direction, we can compute the entire new rope like so:
+
+#+begin_src clojure
+  (defn- move
+    "For a given rope and a direction, computes the new rope."
+    [[head & knots] dir]
+    (let [next-head (mapv + head dir)]
+      (reductions move-tail next-head knots)))
+#+end_src
+
+Now, all that remains is to compute all new ropes, take the last element of it (the /tail/) and count how many unique spots there are:
+#+begin_src clojure
+  (defn solve [input length]
+    (->> (str/split-lines input)
+         (mapcat parse-move)
+         (reductions move (repeat length [0 0]))
+         (map last)
+         distinct
+         count))
+
+  (defn part1 [input] (solve input 2))
+#+end_src
+** Part 2
+#+begin_src clojure
+  (defn part2 [input] (solve input 10))
+#+end_src
