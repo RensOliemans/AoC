@@ -7,57 +7,46 @@
 
 (def input (d/day-input 2022 9))
 
-(defn- move [[x y] [x' y']]
-  [(+ x x') (+ y y')])
+(def directions
+  {"U" [0 -1] "D" [0 1] "L" [-1 0] "R" [1 0]})
 
-(defn- parse-input [input]
-  (->> (s/parse-lines input)
-       (map #(str/split % #" "))
-       (map (fn [[dir amount]] [(parse-dir dir) (Long/parseLong amount)]))))
+(defn- parse-move [move]
+  (let [[dir amount] (str/split move #" ")]
+    (repeat (Integer/parseInt amount) (directions dir))))
 
-(defn- parse-dir [dir]
-  (case dir
-    "R" [+1 +0]
-    "L" [-1 +0]
-    "U" [+0 -1]
-    "D" [+0 +1]))
+(defn- distance [v1 v2]
+  (apply max (map abs (map - v1 v2))))
 
-(defn- head-path
-  "Given a path and a motion, returns the path with motion appended."
-  [path [dir amount]]
-  (loop [i amount
-         curr (peek path)
-         p path]
-    (if (zero? i)
-      p
-      (let [next (move curr dir)]
-        (recur (dec i)
-               next
-               (conj p next))))))
+(defn- clamp [n minim maxim]
+  (cond
+    (> n maxim) maxim
+    (< n minim) minim
+    :else n))
 
+(defn- clamp-around-1 [n]
+  (clamp n -1 1))
 
-(defn- adjacent? [[x y] [x' y']]
-  (>= 1 (max (abs (- x x'))
-             (abs (- y y')))))
+(defn- move-tail
+  "Based on a head and tail, computes the new tail"
+  [head tail]
+  (if (> (distance head tail) 1)
+    (mapv + tail (clamp-around-1 (map - head tail)))
+    tail))
 
-(defn part1 [input]
-  (let [path (->> (parse-input input)
-                  (reduce head-path [[0 0]]))
-        initial (first path)
-        [tail-path _ _]
-        (reduce (fn [[visited tail head] head']
-                  (let [movement (mapv - tail head')]
-                    (cond
-                      ;; tail stays where it is
-                      (->> movement
-                           (map abs)
-                           (apply max)
-                           (>= 1))
-                      [(conj visited tail) tail head']
-                      ;; H moves, T jumps along
-                      :else [(conj visited head) head head'])))
-                [#{initial} initial initial]
-                (rest path))]
-    (count tail-path)))
+(defn- move
+  "For a given rope and a direction, computes the new rope."
+  [[head & knots] dir]
+  (let [next-head (mapv + head dir)]
+    (reductions move-tail next-head knots)))
 
-(defn part2 [input])
+(defn solve [input length]
+  (->> (str/split-lines input)
+       (mapcat parse-move)
+       (reductions move (repeat length [0 0]))
+       (map last)
+       distinct
+       count))
+
+(defn part1 [input] (solve input 2))
+
+(defn part2 [input] (solve input 10))
